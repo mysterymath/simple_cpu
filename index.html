@@ -1,0 +1,75 @@
+<!doctype html>
+<title>A Very Simple CPU</title>
+<style>
+    body {
+        max-width: 75ch;
+    }
+</style>
+<h1>A Very Simple CPU</h1>
+<h2>What Does it Take?</h2> 
+<p>If I wanted to make a CPU "from scratch," what would it take? What is the
+simplest CPU that can be built? Inspired by <i>The Toaster Project</i>, I've
+been exploring this question.
+
+<p>Right off the bat, I realized that "simplest" is extremely subjective and
+vague. Depending on how this word is interpreted, it could range anywhere
+from manually wiring relays using copper wire to buying a CPU off the shelf.
+For the game to be any fun, it'll need some rules. 
+
+<p>If the rules are too strict, the project will be too difficult. If the
+rules are too lenient, the project will be feel like cheating. Let's start on
+the difficult side of things.
+
+<h2>A CPU From Scratch</h2>
+<p>To build a CPU from scratch, you must first create the universe.
+Definitely too difficult. Let's assume a preexisting Earth. To create a CPU,
+at the very least I'd need some kind of switching element. This means winding
+relays from copper wire, blowing glass vaccuum tubes, or using sophisitical
+chemical processes to manufacture semiconductors. Also too difficult. Now let's
+vaccilate back to too easy.
+
+<h2>A CPU From The Store</h2>
+<p>The easiest way to make a CPU is to deposit a small amount of money into a
+societal system that manufactures CPU's at scale, in exchange for one CPU's
+worth of output. This is usually called "buying one." This is, of course, boring.
+
+<p>A slightly less easy way to make a CPU is to purchase a FPGA or CPLD that
+can be reconfigured into nearly any desired digital circuit. A CPU design
+could then be downloaded from the Internet onto the chip. This is only
+slightly more interesting than buying a CPU. I could write the configuration
+myself, but this still woudln't feel like making a CPU. A FPGA is
+specifically designed to be turned into something like a CPU; it's just a bit
+too far from "from scratch" for my taste. Similar logic applies to pre-built
+ALUs and the like.
+
+<h2>A CPU From Non-CPU</h2>
+<p>So, making the logic elements from scratch is too hard, so I'll have to buy
+them. But buying a FPGA is too easy, since it's designed to become any
+circuit you like, including a CPU. This suggests the following rules:
+
+<ul>
+    <li>Any parts purchased from the store must not be specifically intended
+        for inclusion in a CPU.
+    <li>No FPGAs, CPLDs or the like. Any parts purchased must be limited in
+        the sorts of functions they can be made to compute.
+    <li>The CPU should use as few components as possible.
+    <li>The CPU should be integrable in a "real system", capable of doing
+        usual computer things like I/O. The real system is not constrained by
+        these rules.
+</ul>
+
+<h2>The non-CPU Parts of the System</h2>
+<p>What must a CPU be connected to to be a working computer? Well, at the
+very least, a memory. Without a memory, general computation cannot be
+performed; only combinatorial logic. So, if we wanted to buy a simple memory,
+what are our options?
+
+<p>Let's say we want 64KB of RAM. 64KB is the largest amount that can be
+indexed with two bytes; this seems like a good starting point. We'll want a
+RAM chip with as simple an interface as possible; this will lighten the load
+on our CPU and its support systems. The two main options are SRAM and DRAM.
+DRAM requires continually refreshing the data, since it's leaking out. Sounds
+complicated. SRAM it is. To Mouser!
+
+<p>Let's look for the cheapest 64KB SRAM chip. Through hole, so we can put it
+on a breadboard.
