@@ -1,5 +1,5 @@
 <!doctype html>
-<title>A Very Simple CPU</title>
+<title>A Simple CPU</title>
 <style>
     html {
         background-color: #002b36;
@@ -14,11 +14,8 @@
     p {
         text-align: justify;
     }
-    p, ul {
-        font-size: large;
-    }
 </style>
-<h1>A Very Simple CPU</h1>
+<h1>A Simple CPU</h1>
 <h2>What Does it Take?</h2>
 <p>If I wanted to make a CPU "from scratch," what would it take? What is the
 simplest CPU that can be built? Inspired by <i>The Toaster Project</i>, I've
@@ -33,7 +30,7 @@ For the game to be any fun, it'll need some rules.
 rules are too lenient, the project will be feel like cheating. Let's start on
 the difficult side of things.
 
-<h2>A CPU From Scratch</h2>
+<h2>A CPU from Scratch</h2>
 <p>To build a CPU from scratch, you must first create the universe.
 Definitely too difficult. Let's assume a preexisting Earth. To create a CPU,
 at the very least I'd need some kind of switching element. This means winding
@@ -41,7 +38,7 @@ relays from copper wire, blowing glass vaccuum tubes, or using sophisitical
 chemical processes to manufacture semiconductors. Also too difficult. Now let's
 vaccilate back to too easy.
 
-<h2>A CPU From The Store</h2>
+<h2>A CPU from the Store</h2>
 <p>The easiest way to make a CPU is to deposit a small amount of money into a
 societal system that manufactures CPU's at scale, in exchange for one CPU's
 worth of output. This is usually called "buying one." This is, of course, boring.
@@ -55,7 +52,7 @@ specifically designed to be turned into something like a CPU; it's just a bit
 too far from "from scratch" for my taste. Similar logic applies to pre-built
 ALUs and the like.
 
-<h2>A CPU From Non-CPU</h2>
+<h2>A Simple CPU</h2>
 <p>So, making the logic elements from scratch is too hard, so I'll have to buy
 them. But buying a FPGA is too easy, since it's designed to become any
 circuit you like, including a CPU. This suggests the following rules:
@@ -118,7 +115,7 @@ This is a 64 KB SRAM capable of operating at between 2.5-5.5V and at up to 20
 MHz. There's almost nothing up my sleeve with this selection: it was the
 second cheapest chip with the criterion given above. The cheapest was the
 same chip, but running at 1.8 V; the selected version can just be used more
-easily with a Raspberry PI (3.3V)V.
+easily with a Raspberry PI (3.3V).
 
 <p>Though this chip has 64KB of RAM, in 8 bit bytes, with a 16 bit address
 space, it has only 8 pins! Two of the pins are voltage and ground, another
@@ -143,10 +140,10 @@ discussion of bootstrapping.
 
 <p>The chip has two essential transactions for our purposes, just like the bus:
 read and write. To write, the following values are clocked into SI:
-0b00000011, then the 16-bit address, then as much data as desired, in
+00000011, then the 16-bit address, then as much data as desired, in
 multiples of 8 bits. After the first byte, the chip will continue to write SI
 to successive addresses until CS is brought high to end the write. Similarly,
-a read consists of 0b00000010, then the 16-bit address. After this, the chip
+a read consists of 00000010, then the 16-bit address. After this, the chip
 stops caring about the contents of SI, and sets SO to the value at this
 address and successive addresses, until CS is brought high to end the read.
 
@@ -156,3 +153,51 @@ the address, which would not give other peripherals the opportunity to speak
 up. To avoid this, a simple bus controller could watch the input for read
 patterns and deselect the memory chip whenever an I/O address is specified.
 This cancels the memory read and prevents the chip from speaking on the bus.
+
+<h2>The Instruction Set</h2>
+<p>Now that we have a mechanism for the processor to speak with the rest of
+the system, what will it talk about? Traditionally, the processor reads an
+instruction from the system, then does some arithmetic operation or other
+internal processing. Some instructions may read values from the system, write
+values to the system, or both.
+
+<p>When designing the instruction set, how many instructions are necessary?
+If the goal is to be as simple as possible, it turns out the answer is one.
+There are a dazzing variety of "one instruction set computer" architectures,
+where the computer has exactly one way of interacting with the rest of the
+system, that it repeats indefinitely. Even so, given the magic of
+Turing-completeness, the processor is able to simulate far more rich
+instruction sets.
+
+<p>Of all the Turing-complete instructions available, which should we select?
+Our chosen bus suggests a natural answer. An OISC called "byte byte jump"
+consists exclusively of the two basic operations: read and write. Couldn't be
+simpler for our architecture.
+
+<p>A byte byte jump instruction consists of the following 48-bits:
+<ul>
+    <li>A 16-bit source address
+    <li>A 16-bit target address
+    <li>A 16-bit jump address
+</ul>
+
+<p>A CPU implementing byte byte jump would do the following repeatedly:
+<ul>
+    <li>Read the 48 bits at processors instruction pointer.
+    <li>Read the 8 bits at the source address and then write them to the source address.
+    <li>Change the processor's instruction pointer to the jump address.
+</ul>
+
+<p>That's it! A CPU capable of doing the above can compute any computable function.
+
+<h3>The Synthesis of Addition</h3>
+<p>To provide an intuition of how computation can be done with just a move
+instruction, we will now synthesize an addition macro instruction from the
+above. To do so, we'll need a few notational conventions.
+
+<p>Let's refer to our base instruction as follows:
+<p><code>loc: MOV src dst [jmp]</code>
+
+<p>The <code>jmp</code> argument is optional; if omitted, the address of the
+next instruction. <code>loc</code> refers to the address of the instruction
+itself. Let's say the <code>MOV</code> instruction takes 1 cycle.
