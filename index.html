@@ -177,7 +177,7 @@ simpler for our architecture.
 <p>A byte byte jump instruction consists of the following 48-bits:
 <ul>
     <li>A 16-bit source address
-    <li>A 16-bit target address
+    <li>A 16-bit destination address
     <li>A 16-bit jump address
 </ul>
 
@@ -196,8 +196,63 @@ instruction, we will now synthesize an addition macro instruction from the
 above. To do so, we'll need a few notational conventions.
 
 <p>Let's refer to our base instruction as follows:
-<p><code>loc: MOV src dst [jmp]</code>
+<p><code>loc: MOV src dst [jmp] -- comment</code>
 
 <p>The <code>jmp</code> argument is optional; if omitted, the address of the
 next instruction. <code>loc</code> refers to the address of the instruction
-itself. Let's say the <code>MOV</code> instruction takes 1 cycle.
+itself. Comments begin with <code>--</code> and continue until the end of the
+line. Temporary locations are indicated by <code>tn</code>, for some
+positive integer <code>n</code>. Locations and temporaries are considered
+local to each macro instruction.
+
+<p>We can use the fact that the instructions are stored in RAM to synthesize
+an indirect move. We just overwrite part or all of the source location with
+the index:
+
+<pre>
+MOV_INDIR src i dst [jmp]:
+  -- *target = src[*i]; goto jmp;
+  MOV i loc+1
+  loc: MOV src dst jmp
+</pre>
+
+<p>Given indirect accesses, we can now construct and use tables. The contents
+of various tables can be presented to the CPU by attaching ROM chips to the
+system bus, or by loading them into RAM during a bootstrapping procedure.
+Regardless, we can feel free to presume that whatever data we want can be
+preloaded into RAM at whatever addresses we wish.
+
+<p>Imagine we have a giant table that takes up the entire 64KB address space.
+Such a table could be indexed by a pair of 8 bit values; one forming the high
+byte of the value, and the other forming the low byte. In such a table, we
+could just store the sum of the two indices; an indexed lookup into this
+table would allow adding any two 8-bit values.
+
+<p>Unfortunately, this wouldn't leave room in the address space for anything
+else. But, we can instead consider a 4-bit sum table. The complete table of
+4-bit vs 4-bit sums occupies only 256 addresses, and can be indexed using a
+single byte. Let's call this table <code>sum4[256]</code>:
+
+<pre>
+ADD4 a dst [jmp]:
+  -- *dst = (*a >> 4) + (*a & 0x0F); goto jmp;
+  MOV_INDIR sum4 a jmp
+</pre>
+
+<p>However, to use this, we need to be able to manipulate the high and low
+4-bit portions of bytes. Let's build a handful of 4-bit manpulation
+operators. Afterward, we'll see how they can be used to transform a 4-bit
+table-based addition into a full 8-bit addition.
+
+<p>First, let's build 4-bit left and right shift operators, using
+<code>ls4[256]</code> and <code>rs4[256]</code> tables, respectively:
+
+<pre>
+LS4 src dst [jmp]:
+  -- *dst = *src << 4; goto jmp;
+  MOV_INDIR ls4 src jmp
+
+RS4 src dst [jmp]:
+  -- *dst = *src >> 4 & 0x0F; goto jmp;
+  MOV_INDIR rs4 src jmp
+</pre>
