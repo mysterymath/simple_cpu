@@ -6,7 +6,7 @@
         color: #839496;
     }
     body {
-        max-width: 75ch;
+        column-width: 75ch;
     }
     h1,h2,h3,h4,h5,h6 {
         color: #93a1a1;
@@ -14,12 +14,17 @@
     p {
         text-align: justify;
     }
+    .intro {
+        break-inside: avoid;
+    }
 </style>
+<div class="intro">
 <h1>A Simple CPU</h1>
 <h2>What Does it Take?</h2>
 <p>If I wanted to make a CPU "from scratch," what would it take? What is the
 simplest CPU that can be built? Inspired by <i>The Toaster Project</i>, I've
 been exploring this question.
+</div>
 
 <p>Right off the bat, I realized that "simplest" is extremely subjective and
 vague. Depending on how this word is interpreted, it could range anywhere
@@ -30,28 +35,33 @@ For the game to be any fun, it'll need some rules.
 rules are too lenient, the project will be feel like cheating. Let's start on
 the difficult side of things.
 
+<div class="intro">
 <h2>A CPU from Scratch</h2>
-<p>To build a CPU from scratch, you must first create the universe.
-Definitely too difficult. Let's assume a preexisting Earth. To create a CPU,
-at the very least I'd need some kind of switching element. This means winding
-relays from copper wire, blowing glass vaccuum tubes, or using sophisitical
-chemical processes to manufacture semiconductors. Also too difficult. Now let's
-vaccilate back to too easy.
+<p>To build a CPU from scratch, you must first create the universe. Definitely
+too difficult. Let's assume a preexisting Earth. To create a CPU, at the very
+least I'd need some kind of switching element. This means winding relays from
+copper wire, blowing glass vaccuum tubes, or using sophisiticated chemical
+processes to manufacture semiconductors. Also too difficult. So, we're going to
+have to buy our switching elements, at the very least. But if we can go buy
+things, it seems like that can devolve very quickly.
+</div>
 
+<div class="intro">
 <h2>A CPU from the Store</h2>
 <p>The easiest way to make a CPU is to deposit a small amount of money into a
 societal system that manufactures CPU's at scale, in exchange for one CPU's
 worth of output. This is usually called "buying one." This is, of course, boring.
+</div>
 
-<p>A slightly less easy way to make a CPU is to purchase a FPGA or CPLD that
-can be reconfigured into nearly any desired digital circuit. A CPU design
-could then be downloaded from the Internet onto the chip. This is only
-slightly more interesting than buying a CPU. I could write the configuration
-myself, but this still woudln't feel like making a CPU. A FPGA is
-specifically designed to be turned into something like a CPU; it's just a bit
-too far from "from scratch" for my taste. Similar logic applies to pre-built
-ALUs and the like.
+<p>A less easy way to make a CPU is to purchase a FPGA or CPLD that can be
+reconfigured into nearly any desired digital circuit. A CPU design could then
+be downloaded from the Internet onto the chip. This is only slightly more
+interesting than buying a CPU. I could write the configuration myself, but this
+still woudln't feel like making a CPU. A FPGA is specifically designed to be
+turned into something like a CPU; it's just a bit too far from "from scratch"
+for my taste. Similar logic applies to pre-built ALUs and the like.
 
+<div class="intro">
 <h2>A Simple CPU</h2>
 <p>So, making the logic elements from scratch is too hard, so I'll have to buy
 them. But buying a FPGA is too easy, since it's designed to become any
@@ -67,7 +77,9 @@ circuit you like, including a CPU. This suggests the following rules:
         usual computer things like I/O. The real system is not constrained by
         these rules.
 </ul>
+</div>
 
+<div class="intro">
 <h2>The Interface</h2>
 <p>Before we delve into the design of such a CPU, what function must a CPU
 actually perform in a system? The simpler the CPU's job can be made, the
@@ -76,6 +88,7 @@ communicates with the rest of the computer via a bus. Modern implementations
 of these busses are quite complex, so we'll use a far simpler model. Instead
 of getting into the detailed design of such a bus, let's treat it a bit
 abstractly. The details will resolve themselves with time.
+</div>
 
 <p>The most important device sitting behind a bus is the main memory, so
 let's start there. There are two operations the CPU could issue to the memory
@@ -93,11 +106,13 @@ those locations. The main memory chip only responds to address regions that
 correspond to RAM; these and the memory regions for each device on the bus
 are mutually exclusive.
 
+<div class="intro">
 <h2>The Memory and Bus</h2>
 <p>Since the memory is the most important (and only necessary) device on the
 bus, we can let it dictate the bus's design. If we use 16-bit addresses, then
 we have 64KB of addressable space to work with on the bus. Let's start
 looking for a memory chip of that size.
+</div>
 
 <p>There are two main types of modern memory suitable for main system RAM:
 SRAM and DRAM. DRAM is cheaper and has far more storage available, but it
@@ -154,12 +169,14 @@ up. To avoid this, a simple bus controller could watch the input for read
 patterns and deselect the memory chip whenever an I/O address is specified.
 This cancels the memory read and prevents the chip from speaking on the bus.
 
+<div class="intro">
 <h2>The Instruction Set</h2>
 <p>Now that we have a mechanism for the processor to speak with the rest of
 the system, what will it talk about? Traditionally, the processor reads an
 instruction from the system, then does some arithmetic operation or other
 internal processing. Some instructions may read values from the system, write
 values to the system, or both.
+<div class="intro">
 
 <p>When designing the instruction set, how many instructions are necessary?
 If the goal is to be as simple as possible, it turns out the answer is one.
@@ -189,20 +206,25 @@ simpler for our architecture.
 </ul>
 
 <p>That's it! A CPU capable of doing the above can compute any computable function.
+</div>
+</div>
 
 <h3>The Synthesis of Addition</h3>
 <p>To provide an intuition of how computation can be done with just a move
 instruction, we will now synthesize an addition macro instruction from the
-above. To do so, we'll need a few notational conventions.
+above. This section stands on its own; feel free to skip it if you believe that
+the above instruction is both sufficient and practical.
+</div>
 
-<p>Let's refer to our base instruction as follows:
+<p>First, a few notational conventions. Let's refer to our base instruction as
+follows:
 <p><code>loc: MOV src dst [jmp] -- comment</code>
 
 <p>The <code>jmp</code> argument is optional; if omitted, the address of the
 next instruction. <code>loc</code> refers to the address of the instruction
 itself. Comments begin with <code>--</code> and continue until the end of the
-line. Temporary locations are indicated by <code>tn</code>, for some
-positive integer <code>n</code>. Locations and temporaries are considered
+line. Temporary locations are indicated by <code>t[n]</code>, for some positive
+integer <code>n</code> (optional). Locations and temporaries are considered
 local to each macro instruction.
 
 <p>We can use the fact that the instructions are stored in RAM to synthesize
@@ -210,9 +232,15 @@ an indirect move. We just overwrite part or all of the source location with
 the index:
 
 <pre>
-MOV_INDIR src i dst [jmp]:
-  -- *target = src[*i]; goto jmp;
-  MOV i loc+1
+MOV_INDIR src lo dst [jmp]:
+  -- *target = *(src &lt;&lt; 8 | *lo); goto jmp;
+  MOV lo loc+1
+  loc: MOV src dst jmp
+
+MOV_INDIR16 hi lo dst [jmp]:
+  -- *target = *(*hi &lt;&lt; 8 | *lo); goto jmp;
+  MOV hi loc
+  MOV lo loc+1
   loc: MOV src dst jmp
 </pre>
 
@@ -231,11 +259,12 @@ table would allow adding any two 8-bit values.
 <p>Unfortunately, this wouldn't leave room in the address space for anything
 else. But, we can instead consider a 4-bit sum table. The complete table of
 4-bit vs 4-bit sums occupies only 256 addresses, and can be indexed using a
-single byte. Let's call this table <code>sum4[256]</code>:
+single byte. All such tables would need to be aligned to 256-bytes. Let's call
+this table <code>sum4[256]</code>:
 
 <pre>
 ADD4 a dst [jmp]:
-  -- *dst = (*a >> 4) + (*a & 0x0F); goto jmp;
+  -- *dst = (*a &gt;&gt; 4) + (*a &amp; 0x0F); goto jmp;
   MOV_INDIR sum4 a jmp
 </pre>
 
@@ -249,10 +278,60 @@ table-based addition into a full 8-bit addition.
 
 <pre>
 LS4 src dst [jmp]:
-  -- *dst = *src << 4; goto jmp;
+  -- *dst = *src &lt;&lt; 4; goto jmp;
   MOV_INDIR ls4 src jmp
 
 RS4 src dst [jmp]:
-  -- *dst = *src >> 4 & 0x0F; goto jmp;
+  -- *dst = *src &gt;&gt; 4 &amp; 0x0F; goto jmp;
   MOV_INDIR rs4 src jmp
 </pre>
+
+<p>Now, to use ADD4 to add the 4 low bits of one byte to the 4 low bits of
+another, we need some way to merge together the low 4 bits of two bytes into
+one. This would seem require a pair of 4-bit table lookups: merge4[16][16], but
+our indirection trick only operates at a byte-level granularity.
+
+<p>Say the first set of 4 bits was fixed, and we only needed to vary over the
+second. We'd have 16 merge4 tables: merge4_0[256] to merge4_15[256]. Each of
+them would store a value with 4 high bits of 0..15, and the low 4 bits of the
+index. Now say we store these 16 tables consecutively from 0 to 15, and align
+the whole 4096 bytes on a 4096-byte boundary. Now the 4 high bits of every
+address in any of the tables are the same, and the low 4 bits of the high byte
+selects the table. Thus, to find the right table location, we only need to
+overwrite the 4 high bits of the first index with the 4 high bits of the table.
+This we can do with yet another table, merge4[256].
+
+<p>Putting it all together, we get the following:
+
+<pre>
+MERGE4 hi lo dst [jmp]:
+  -- *dst = (*hi &amp; 0x0F) &lt;&lt; 4 | (*lo &amp; 0x0F); goto jmp;
+  MOV_INDIR merge4 hi t
+  MOV_INDIR16 t lo dst jmp
+</pre>
+
+<p>Now we can add the 4 low bits or the 4 high bits of two bytes:
+
+<pre>
+ADD4_LO a b dst [jmp]:
+  -- *dst = (*a &amp; 0x0F) + (*b &amp; 0x0F); goto jmp;
+  MERGE4 a b t
+  ADD4 t dst jmp
+
+ADD4_HI a b dst [jmp]:
+  -- *dst = (*a &amp; 0xF0) &gt;&gt; 4 + (*b &amp; 0xF0) &gt;&gt; 4; goto jmp;
+  RS4 a t
+  RS4 b t1
+  ADD4_LO t t1 dst jmp
+</pre>
+
+<p>Finally, we can combine the two, producing the full 8-bit ADD:
+
+<pre>
+ADD a b dst [jmp]
+  -- *dst = *a + *b; goto jmp;
+  ADD4_LO a b t -- low 4 bits = low addition
+  RS4 t t1 -- low 4 bits = carry of the low addition
+  ADD4_HI a b t2 -- low 4 bits = high addition without carry
+  ADD4_LO t1 t2 t3 -- low 4 bits = high addition with carry
+  MERGE4 t3 t dst jmp
