@@ -106,68 +106,56 @@ those locations. The main memory chip only responds to address regions that
 correspond to RAM; these and the memory regions for each device on the bus
 are mutually exclusive.
 
-<div class="intro">
-<h2>The Memory and Bus</h2>
-<p>Since the memory is the most important (and only necessary) device on the
-bus, we can let it dictate the bus's design. If we use 16-bit addresses, then
-we have 64KB of addressable space to work with on the bus. Let's start
-looking for a memory chip of that size.
-</div>
+<p>I like 8-bit systems with 16-bit addresses, so let's start there. This
+gives us 64KB of addressable space over the bus, with 256 values per word.
+Now, physically, how might the CPU request and deliver words with the rest of
+the system? A simple bus design is the Serial Peripheral Interface (SPI). SPI
+communicates data between a master (the CPU) and various chips using a clock
+line (SCLK), a master serial output (MOSI), a master serial input (MISO), and
+a chip select line (CS). The basic idea is that CS selects a chip, and the
+master can send bits of data to it using MOSI, while the chip can send bits
+of data to the master using MISO. The timing of the data is controlled by
+SCLK. Once the operation is finished, CS deselects the chip.
 
-<p>There are two main types of modern memory suitable for main system RAM:
-SRAM and DRAM. DRAM is cheaper and has far more storage available, but it
-must be refreshed periodically or all the data will leak out of it (hence
-Dynamic RAM). SRAM (Static RAM) is going to be far easier to work with, since
-it will keep its contents so long as power is supplied, with no additional
-support required. So, let's look for the cheapest available 64KB SRAM.
-Through-hole, so we can work on a breadboard. To Mouser!
+<p>SPI can be used in a number of configurations. For reasons I'll get into
+later, let's say the leading edge of the clock is the rising edge (CPOL=0).
+Inputs are captured on the leading edge of the clock, while outputs are
+changed on the trailing edge of the clock (CPHA=0). We'll also take CS to be
+active low. Furthermore, we'll only use SPI in half-duplex mode, meaning only
+one of MOSI and MISO can be driven at a time. They can thus share a wire; we
+are using SPI in "three-wire mode."
 
-<p>For main memory, I've selected the <a
-href="https://www.microchip.com/wwwproducts/en/23LC512">Microchip
-23LC512-I/P</a> (<a
-href="https://www.mouser.com/datasheet/2/268/20005155B-1512297.pdf">Datasheet</a>).
-This is a 64 KB SRAM capable of operating at between 2.5-5.5V and at up to 20
-MHz. There's almost nothing up my sleeve with this selection: it was the
-second cheapest chip with the criterion given above. The cheapest was the
-same chip, but running at 1.8 V; the selected version can just be used more
-easily with a Raspberry PI (3.3V).
+<p>Let's diverge a bit from the usual way of using SPI and say that, instead
+of one CS line per device, there's only one for the whole bus. Thus, CS
+serves mostly to mark the beginning and end of operations. To select between
+devices, we'll rely on the standard memory-mapped I/O approach. All devices
+will listen to the bus for read and write instructions, but only the device
+that "owns" the corresponding address will perform a write or answer a read.
 
-<p>Though this chip has 64KB of RAM, in 8 bit bytes, with a 16 bit address
-space, it has only 8 pins! Two of the pins are voltage and ground, another
-one will be held low in our usage, leaving only 5 meaniful pins. Well, the
-chip is SPI, and data is accessed in a serial fashion. While I initially
-recoiled at the complexity of implementing a serial protocol to speak to a
-memory chip, in retrospect it's actually quite convenient; almost no wiring
-is needed to use the chip!
+<p>So, we can take our CPU to have 5 connected pins: SCLK, MOSI/MISO, CS, VCC
+and GND. We shall take SCLK to be an input shared by both the CPU and the
+bus; this saves our CPU from having to incorporate an oscillator.
 
-<p>So, let us design our bus around this mighty chip. The five useful pins are
-SCK, SI, SO, CS, and HOLD. SCK is simply a clock signal, and SI and SO are
-the input and output pins. When SCK goes from low to high, the chip measures
-SI. When SCK later goes from high to low, it may change SO. HOLD should
-normally be kept high, but it can be driven low to pause the chip. This
-disables SO and causes the chip to ignore clock edges. CS is kept high by
-default, and is brought low for the duration of a transaction with the chip.
-It is brought high again to end the transaction.
+<p>Now that we have a "physical layer," what should be sent over it? Well,
+there are two necessary operations: read and write. We can begin an operation
+by asserting CS. Next, we need to indicate whether the operation is a read or
+write. The master can send a 0 to indicate read and a 1 to indicate write.
+Now, the master can send the 16-bit address; note that nothing in SPI
+requires the bits to be aligned to anything; sending one bit then sixteen is
+no problem. Then, if the operation was a read, the master listens for the 8
+bits of the result. If the operation was a write, the master sends the 8 bits
+to write. Now, the question is what should happen if additional clocks are
+sent afterwards. Let's do a straightforward extension: for reads, the bus
+will continue to send data for successively increasing addresses, with a
+wraparound to zero if 16-bits are exceeded. Similarly, the master can
+continue to send data to write to successively increasing addresses, with the
+same wraparound. The operation ends when the CS line is deselected; for
+simplicity, this must occur on an 8 bit data boundary, and at least 8 bits of
+data must be read/written.
 
-<p>The chip has a number of modes; from here on, we'll be discussing only one of
-them. The means to get the chip into this mode will be left til the
-discussion of bootstrapping.
-
-<p>The chip has two essential transactions for our purposes, just like the bus:
-read and write. To write, the following values are clocked into SI:
-00000011, then the 16-bit address, then as much data as desired, in
-multiples of 8 bits. After the first byte, the chip will continue to write SI
-to successive addresses until CS is brought high to end the write. Similarly,
-a read consists of 00000010, then the 16-bit address. After this, the chip
-stops caring about the contents of SI, and sets SO to the value at this
-address and successive addresses, until CS is brought high to end the read.
-
-<p>This seems like a perfectly servicable architecture for our bus as well, with
-one slight caveat. The memory chip will always respond to reads, no matter
-the address, which would not give other peripherals the opportunity to speak
-up. To avoid this, a simple bus controller could watch the input for read
-patterns and deselect the memory chip whenever an I/O address is specified.
-This cancels the memory read and prevents the chip from speaking on the bus.
+<p>The above protocol is not original; it's a simplification of the interface
+of a real Microchip SPI SRAM. We'll see later that this provides some
+advantages in the implementation of the CPU.
 
 <div class="intro">
 <h2>The Instruction Set</h2>
