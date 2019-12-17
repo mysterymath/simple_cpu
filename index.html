@@ -31,51 +31,26 @@ vague. Depending on how this word is interpreted, it could range anywhere
 from manually wiring relays using copper wire to buying a CPU off the shelf.
 For the game to be any fun, it'll need some rules.
 
-<p>If the rules are too strict, the project will be too difficult. If the
-rules are too lenient, the project will be feel like cheating. Let's start on
-the difficult side of things.
-
-<div class="intro">
-<h2>A CPU from Scratch</h2>
-<p>To build a CPU from scratch, you must first create the universe. Definitely
-too difficult. Let's assume a preexisting Earth. To create a CPU, at the very
-least I'd need some kind of switching element. This means winding relays from
-copper wire, blowing glass vaccuum tubes, or using sophisiticated chemical
-processes to manufacture semiconductors. Also too difficult. So, we're going to
-have to buy our switching elements, at the very least. But if we can go buy
-things, it seems like that can devolve very quickly.
-</div>
-
-<div class="intro">
-<h2>A CPU from the Store</h2>
-<p>The easiest way to make a CPU is to deposit a small amount of money into a
-societal system that manufactures CPU's at scale, in exchange for one CPU's
-worth of output. This is usually called "buying one." This is, of course, boring.
-</div>
-
-<p>A less easy way to make a CPU is to purchase a FPGA or CPLD that can be
-reconfigured into nearly any desired digital circuit. A CPU design could then
-be downloaded from the Internet onto the chip. This is only slightly more
-interesting than buying a CPU. I could write the configuration myself, but this
-still woudln't feel like making a CPU. A FPGA is specifically designed to be
-turned into something like a CPU; it's just a bit too far from "from scratch"
-for my taste. Similar logic applies to pre-built ALUs and the like.
-
-<div class="intro">
-<h2>A Simple CPU</h2>
-<p>So, making the logic elements from scratch is too hard, so I'll have to buy
-them. But buying a FPGA is too easy, since it's designed to become any
-circuit you like, including a CPU. This suggests the following rules:
-
+<p>The rules can be whatever we like, but the goal of making a simplest CPU
+will necessarily involve, at least in part, the most gratiutous allowable
+abuse of the rules. Accordingly, the nature of the rules will control a great
+deal of the project's nature. After carefully examining the consequences of
+various rule sets, I've chosen the following:
 <ul>
-    <li>Any parts purchased from the store must not be specifically intended
-        for inclusion in a CPU.
-    <li>No FPGAs, CPLDs or the like. Any parts purchased must be limited in
-        the sorts of functions they can be made to compute.
+    <li>The CPU should be integrable in a "real system". Together they should
+    be capable of doing usual computer things like I/O, addition,
+    subtraction, etc.
+    <li>Any parts of the CPU purchased from the store must not be specifically intended
+    for inclusion in a CPU.
+    <li>No FPGAs, CPLDs or the like in the CPU. Purchased parts must be
+    limited in the sorts of functions they be made to directly compute.
     <li>The CPU should use as few components as possible.
-    <li>The CPU should be integrable in a "real system", capable of doing
-        usual computer things like I/O. The real system is not constrained by
-        these rules.
+    <li>The CPU should be responsible for the overall control of data
+    processing in the system. While this rule is very vague, it's spirit
+    rules out a class of cheats where a peripheral or the bus itself can be
+    made so smart as to make the CPU too trivial.
+    <li>The rest of the system will be played by a Raspberry PI's GPIO
+    pins (3.3V).
 </ul>
 </div>
 
@@ -84,10 +59,9 @@ circuit you like, including a CPU. This suggests the following rules:
 <p>Before we delve into the design of such a CPU, what function must a CPU
 actually perform in a system? The simpler the CPU's job can be made, the
 simpler it's design can be. Well, in a modern computer architecture, a CPU
-communicates with the rest of the computer via a bus. Modern implementations
-of these busses are quite complex, so we'll use a far simpler model. Instead
-of getting into the detailed design of such a bus, let's treat it a bit
-abstractly. The details will resolve themselves with time.
+communicates with the rest of the computer via a bus. Over the bus, the CPU
+requests information and delivers the results of computations to the
+appropriate subsytems, as directed by the users program, stored in memory.
 </div>
 
 <p>The most important device sitting behind a bus is the main memory, so
@@ -136,26 +110,21 @@ that "owns" the corresponding address will perform a write or answer a read.
 and GND. We shall take SCLK to be an input shared by both the CPU and the
 bus; this saves our CPU from having to incorporate an oscillator.
 
-<p>Now that we have a "physical layer," what should be sent over it? Well,
-there are two necessary operations: read and write. We can begin an operation
-by asserting CS. Next, we need to indicate whether the operation is a read or
-write. The master can send a 0 to indicate read and a 1 to indicate write.
-Now, the master can send the 16-bit address; note that nothing in SPI
-requires the bits to be aligned to anything; sending one bit then sixteen is
-no problem. Then, if the operation was a read, the master listens for the 8
-bits of the result. If the operation was a write, the master sends the 8 bits
-to write. Now, the question is what should happen if additional clocks are
-sent afterwards. Let's do a straightforward extension: for reads, the bus
-will continue to send data for successively increasing addresses, with a
-wraparound to zero if 16-bits are exceeded. Similarly, the master can
-continue to send data to write to successively increasing addresses, with the
-same wraparound. The operation ends when the CS line is deselected; for
-simplicity, this must occur on an 8 bit data boundary, and at least 8 bits of
-data must be read/written.
+<p>Now that we have a "physical layer," we need a protocol to send over it.
+We begin an operation by asserting CS. Next, a 0 or 1 is sent to indicate
+whether the operation is a read or a write, respectively. write. Now, the
+master can send the 16-bit address. If the operation was a read, the master
+listens for the result. If the operation was a write, the master sends the
+bits to write. For as long as CS is selected, bus will continue to send or
+receive additional data, which will be considered to apply to successively
+increasing addresses with a 64KiB wraparound. The operation ends when the CS
+line is deselected; this must occur on an 8-bit boundary, and at least 8 bits
+of data must be read/written.
 
 <p>The above protocol is not original; it's a simplification of the interface
-of a real Microchip SPI SRAM. We'll see later that this provides some
-advantages in the implementation of the CPU.
+of a real Microchip SPI SRAM. Thus, there's good reason to think a practical
+bus controller could implement it, and we needn't feel too bad coding up this
+logic in Python in our Raspberry PI.
 
 <div class="intro">
 <h2>The Instruction Set</h2>
