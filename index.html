@@ -17,6 +17,9 @@
     .intro {
         break-inside: avoid;
     }
+    pre {
+      font-size: large;
+    }
 </style>
 <div class="intro">
 <h1>A Simple CPU</h1>
@@ -175,7 +178,9 @@ the above instruction is both sufficient and practical.
 
 <p>First, a few notational conventions. Let's refer to our base instruction as
 follows:
-<p><code>loc: MOV src dst [jmp] -- comment</code>
+<pre>
+loc: MOV src dst [jmp] -- comment
+</pre>
 
 <p>The <code>jmp</code> argument is optional; if omitted, the address of the
 next instruction. <code>loc</code> refers to the address of the instruction
@@ -293,3 +298,50 @@ ADD a b dst [jmp]
   ADD4_LO t1 t2 t3 -- low 4 bits = high addition with carry
   MERGE4 t3 t dst jmp
 </pre>
+
+<div class="intro">
+<h2>External Pin Behavior</h2>
+<p>Now that we have both a bus and an operation for the CPU to perform on
+that bus, we can combine the two to describe the CPU's pin-level behavior.
+Performing a byte-byte-jump operation will take some number of clock cycles.
+Since we are using SPI in half-duplex mode, on each cycle, the CPU could
+either read a bit from the bus or write a bit to the bus. To read, the CPU
+must save the bit to some internal memory location. The CPU will need 56 bits
+of such memory: 3 16-bit addresses and 1 8-bit value. Let's call the
+addresses SRC, DST, IP, and the value VAL. We will take 0 and 1 as two
+special locations that can only be read from.
+</div>
+
+<p>Let's come up with a notation describing a sequence of CPU cycles. Let's
+consider a cycle to be a high to low transition, shortly after which all
+driven pins may change their value, followed by a low to high transition,
+shortly after which all input pins are sampled. We can then record whether
+the CPU is driving or reading each pin, and what the source or destination
+for the bit is, respectively.
+
+<p>To save space, if a value is being driving on a pin, say <code>IP &gt; 
+SIO</code>, for multiple cycles, it takes on each of the bits of that value
+in turn, starting from the MSB. A line is prefixed with the number of cycles
+for which it applies; if none, infer "1."
+
+<pre>
+CS = 1; 0 &gt; SIO
+16 IP &gt; SIO
+16 SRC &gt; SIO
+16 DST &lt; SIO
+16 IP &lt; SIO
+CS = 0
+CS = 1; 0 &gt; SIO
+16 SRC &gt; SIO
+8 VAL &lt; SIO
+CS = 0
+CS = 1; 1 &gt; SIO
+16 DST &gt; SIO
+8 VAL &lt; SIO
+CS = 0
+</pre>
+
+<div class="intro">
+<h2>Implementation</h2>
+<p>TODO
+</div>
