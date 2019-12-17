@@ -17,7 +17,7 @@
     .intro {
         break-inside: avoid;
     }
-    pre {
+    code, pre {
       font-size: large;
     }
 </style>
@@ -343,5 +343,36 @@ CS = 0
 
 <div class="intro">
 <h2>Implementation</h2>
-<p>TODO
+<p>Here we take <code>&X</code> to be the address of the location
+<code>X</code> in R.
+
+<pre>
+-- Write read (00000011) to R
+6 R.CS = 0; R &lt; 0
+2 R &lt; 1
+
+-- Write the IP's address to R; write 0 to SIO.
+16 R &lt; &amp;IP
+R &lt; &amp;IP; CS = 1; 0 &gt; SIO
+
+-- 16 (IP > SIO)
+16 --
+
+-- Load instruction into CPU memory.
+16 SRC &gt; SIO
+16 DST &lt; SIO
+-- Note that overwriting IP accomplishes the jump, as it isn't used again until
+-- the next cycle.
+16 IP &lt; SIO
+
+CS = 0
+CS = 1; 0 &gt; SIO
+16 SRC &gt; SIO
+8 VAL &lt; SIO
+CS = 0
+CS = 1; 1 &gt; SIO
+16 DST &gt; SIO
+8 VAL &lt; SIO
+CS = 0
+</pre>
 </div>
