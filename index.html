@@ -207,12 +207,12 @@ the index:
 
 <pre>
 MOV_INDIR src lo dst [jmp]:
-  -- *target = *(src &lt;&lt; 8 | *lo); goto jmp;
+  -- *target = *(src &lt;&lt; 8 | *lo)
   MOV lo loc+1
   loc: MOV src dst jmp
 
 MOV_INDIR16 hi lo dst [jmp]:
-  -- *target = *(*hi &lt;&lt; 8 | *lo); goto jmp;
+  -- *target = *(*hi &lt;&lt; 8 | *lo)
   MOV hi loc
   MOV lo loc+1
   loc: MOV src dst jmp
@@ -238,7 +238,7 @@ this table <code>sum4[256]</code>:
 
 <pre>
 ADD4 a dst [jmp]:
-  -- *dst = (*a &gt;&gt; 4) + (*a &amp; 0x0F); goto jmp;
+  -- *dst = (*a &gt;&gt; 4) + (*a &amp; 0x0F)
   MOV_INDIR sum4 a jmp
 </pre>
 
@@ -252,11 +252,11 @@ table-based addition into a full 8-bit addition.
 
 <pre>
 LS4 src dst [jmp]:
-  -- *dst = *src &lt;&lt; 4; goto jmp;
+  -- *dst = *src &lt;&lt; 4
   MOV_INDIR ls4 src jmp
 
 RS4 src dst [jmp]:
-  -- *dst = *src &gt;&gt; 4 &amp; 0x0F; goto jmp;
+  -- *dst = *src &gt;&gt; 4 &amp; 0x0F
   MOV_INDIR rs4 src jmp
 </pre>
 
@@ -279,7 +279,7 @@ This we can do with yet another table, merge4[256].
 
 <pre>
 MERGE4 hi lo dst [jmp]:
-  -- *dst = (*hi &amp; 0x0F) &lt;&lt; 4 | (*lo &amp; 0x0F); goto jmp;
+  -- *dst = (*hi &amp; 0x0F) &lt;&lt; 4 | (*lo &amp; 0x0F)
   MOV_INDIR merge4 hi t
   MOV_INDIR16 t lo dst jmp
 </pre>
@@ -288,12 +288,12 @@ MERGE4 hi lo dst [jmp]:
 
 <pre>
 ADD4_LO a b dst [jmp]:
-  -- *dst = (*a &amp; 0x0F) + (*b &amp; 0x0F); goto jmp;
+  -- *dst = (*a &amp; 0x0F) + (*b &amp; 0x0F)
   MERGE4 a b t
   ADD4 t dst jmp
 
 ADD4_HI a b dst [jmp]:
-  -- *dst = (*a &amp; 0xF0) &gt;&gt; 4 + (*b &amp; 0xF0) &gt;&gt; 4; goto jmp;
+  -- *dst = (*a &amp; 0xF0) &gt;&gt; 4 + (*b &amp; 0xF0) &gt;&gt; 4
   RS4 a t
   RS4 b t1
   ADD4_LO t t1 dst jmp
@@ -303,7 +303,7 @@ ADD4_HI a b dst [jmp]:
 
 <pre>
 ADD a b dst [jmp]
-  -- *dst = *a + *b; goto jmp;
+  -- *dst = *a + *b
   ADD4_LO a b t -- low 4 bits = low addition
   RS4 t t1 -- low 4 bits = carry of the low addition
   ADD4_HI a b t2 -- low 4 bits = high addition without carry
@@ -373,8 +373,8 @@ R &lt; &amp;IP; CS = 1; 0 &gt; SIO
 -- Load instruction into CPU memory.
 16 SRC &gt; SIO
 16 DST &lt; SIO
--- Note that overwriting IP accomplishes the jump, as it isn't used again until
--- the next cycle.
+-- Note that overwriting IP accomplishes the jump,
+-- as it isn't used again until the next cycle.
 16 IP &lt; SIO
 
 CS = 0
