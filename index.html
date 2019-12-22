@@ -321,8 +321,6 @@ SRC = 2
 DST = 4
 VAL = 6
 
-WriteR():
-
 SIOOp(RAddr, Op, Body):
   -- Begins a SIO operation at the address 
   -- given by an address in R, executes the given body,
@@ -337,28 +335,28 @@ SIOOp(RAddr, Op, Body):
   R = IP; CS = 1; SIO = 0
 
   -- R sends the IP's address to SIO.
-  16 *
+  16 R.CTRL = 0
 
+  -- Note that R.CTRL = 0 in the body.
   Body()
 
   -- End the operation for both R and SIO
-  R.CS = 1; CS = 0
+  R.CS = 1; CS = 0; R.CTRL = 1
 
 WriteRFromSIO(RAddr,Size):
   -- Hold SIO and end any oustanding operation on R.
   R.CS = 1; HOLD = 1
 
   -- Select R and send it write code (00000010).
-  6 R.CS = 0; R = 0
+  6 R.CS = 0; R = 0; R.CTRL = 1
   R = 1
   R = 0
 
   -- Send the write address to R.
   16 R = RAddr
-  R.HOLD = 0
 
   -- The bus writes to R.
-  Size HOLD = 0
+  Size R.CTRL = 0; HOLD = 0
 
 Loop:
   SIOOp(IP, 0, { WriteRFromSIO(IP, 48) })
