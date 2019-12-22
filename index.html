@@ -199,23 +199,21 @@ next instruction. <code>loc</code> refers to the address of the instruction
 itself. Comments begin with <code>--</code> and continue until the end of the
 line. Temporary locations are indicated by <code>t[n]</code>, for some positive
 integer <code>n</code> (optional). Locations and temporaries are considered
-local to each macro instruction.
-
-<p>We can use the fact that the instructions are stored in RAM to synthesize
-an indirect move. We just overwrite part or all of the source location with
-the index:
+local to each macro instruction. We will avoid here specifying how the
+instruction is laid out in RAM, but each part of an instruction at loc
+can be referred to using loc.src, loc.dst, or loc.jmp.
 
 <pre>
 MOV_INDIR src lo dst [jmp]:
   -- *target = *(src &lt;&lt; 8 | *lo)
-  MOV lo loc+1
+  MOV lo loc.src+1
   loc: MOV src dst jmp
 
 MOV_INDIR16 hi lo dst [jmp]:
   -- *target = *(*hi &lt;&lt; 8 | *lo)
-  MOV hi loc
-  MOV lo loc+1
-  loc: MOV src dst jmp
+  MOV hi loc.src
+  MOV lo loc.src+1
+  loc: MOV 0xDEADBEEF dst jmp
 </pre>
 
 <p>Given indirect accesses, we can now construct and use tables. The contents
@@ -312,80 +310,61 @@ ADD a b dst [jmp]
 </pre>
 
 <div class="intro">
-<h2>External Pin Behavior</h2>
-<p>Now that we have both a bus and an operation for the CPU to perform on
-that bus, we can combine the two to describe the CPU's pin-level behavior.
-Performing a byte-byte-jump operation will take some number of clock cycles.
-Since we are using SPI in half-duplex mode, on each cycle, the CPU could
-either read a bit from the bus or write a bit to the bus. To read, the CPU
-must save the bit to some internal memory location. The CPU will need 56 bits
-of such memory: 3 16-bit addresses and 1 8-bit value. Let's call the
-addresses SRC, DST, IP, and the value VAL. We will take 0 and 1 as two
-special locations that can only be read from.
-</div>
-
-<p>Let's come up with a notation describing a sequence of CPU cycles. Let's
-consider a cycle to be a high to low transition, shortly after which all
-driven pins may change their value, followed by a low to high transition,
-shortly after which all input pins are sampled. We can then record whether
-the CPU is driving or reading each pin, and what the source or destination
-for the bit is, respectively.
-
-<p>To save space, if a value is being driving on a pin, say <code>IP &gt; 
-SIO</code>, for multiple cycles, it takes on each of the bits of that value
-in turn, starting from the MSB. A line is prefixed with the number of cycles
-for which it applies; if none, infer "1."
-
-<pre>
-CS = 1; 0 &gt; SIO
-16 IP &gt; SIO
-16 SRC &gt; SIO
-16 DST &lt; SIO
-16 IP &lt; SIO
-CS = 0
-CS = 1; 0 &gt; SIO
-16 SRC &gt; SIO
-8 VAL &lt; SIO
-CS = 0
-CS = 1; 1 &gt; SIO
-16 DST &gt; SIO
-8 VAL &lt; SIO
-CS = 0
-</pre>
-
-<div class="intro">
 <h2>Implementation</h2>
 <p>Here we take <code>&X</code> to be the address of the location
-<code>X</code> in R.
+<code>X</code> in R. The instructions are laid out in RAM in the order jmp,
+src, dst. * by itself indicates a repeat of the previous state.
 
 <pre>
--- Write read (00000011) to R
-6 R.CS = 0; R &lt; 0
-2 R &lt; 1
+IP = 0
+SRC = 2
+DST = 4
+VAL = 6
 
--- Write the IP's address to R; write 0 to SIO.
-16 R &lt; &amp;IP
-R &lt; &amp;IP; CS = 1; 0 &gt; SIO
+WriteR():
 
--- 16 (IP > SIO)
-16 --
+SIOOp(RAddr, Op, Body):
+  -- Begins a SIO operation at the address 
+  -- given by an address in R, executes the given body,
+  -- then ends any outstanding operations. 
 
--- Load instruction into CPU memory.
-16 SRC &gt; SIO
-16 DST &lt; SIO
--- Note that overwriting IP accomplishes the jump,
--- as it isn't used again until the next cycle.
-16 IP &lt; SIO
+  -- Select R and send it read code (00000011).
+  6 R.CS = 0; R = 0
+  2 R = 1
 
-CS = 0
-CS = 1; 0 &gt; SIO
-16 SRC &gt; SIO
-8 VAL &lt; SIO
-CS = 0
-CS = 1; 1 &gt; SIO
-16 DST &gt; SIO
-8 VAL &lt; SIO
-CS = 0
+  -- Write the address to R; begin read on SIO.
+  15 R = IP
+  R = IP; CS = 1; SIO = 0
 
+  -- R sends the IP's address to SIO.
+  16 *
+
+  Body()
+
+  -- End the operation for both R and SIO
+  R.CS = 1; CS = 0
+
+WriteRFromSIO(RAddr,Size):
+  -- Hold SIO and end any oustanding operation on R.
+  R.CS = 1; HOLD = 1
+
+  -- Select R and send it write code (00000010).
+  6 R.CS = 0; R = 0
+  R = 1
+  R = 0
+
+  -- Send the write address to R.
+  16 R = RAddr
+  R.HOLD = 0
+
+  -- The bus writes to R.
+  Size HOLD = 0
+
+Loop:
+  SIOOp(IP, 0, { WriteRFromSIO(IP, 48) })
+  SIOOp(SRC, 0, { WriteRFromSIO(VAL, 8) })
+
+  -- Note: R will continue to output VAL after outputting DST,
+  -- since VAL immediately follows DST
+  SIOOp(DST, 1, { 8 * })
 </pre>
-</div>
