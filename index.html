@@ -327,21 +327,21 @@ SIOOp(RAddr, Op, Body):
   -- then ends any outstanding operations. 
 
   -- Select R and send it read code (00000011).
-  6 R.CS = 0; R = 0
+  6 R.CS = 0; R = 0; R.CTRL = 1
   2 R = 1
 
-  -- Write the address to R; begin read on SIO.
+  -- Write the address to R; begin op on SIO.
   15 R = IP
-  R = IP; CS = 1; SIO = 0
+  R = IP; CS = 1; SIO = Op 
 
-  -- R sends the IP's address to SIO.
+  -- R sends the address to SIO.
   16 R.CTRL = 0
 
   -- Note that R.CTRL = 0 in the body.
   Body()
 
   -- End the operation for both R and SIO
-  R.CS = 1; CS = 0; R.CTRL = 1
+  R.CS = 1; CS = 0
 
 WriteRFromSIO(RAddr,Size):
   -- Hold SIO and end any oustanding operation on R.
