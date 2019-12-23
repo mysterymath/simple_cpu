@@ -331,13 +331,13 @@ SIOOp(RAddr, Op, Body):
   2 R = 1
 
   -- Write the address to R; begin op on SIO.
-  15 R = IP
-  R = IP; CS = 1; SIO = Op 
+  15 R = RAddr
+  R = RAddr; CS = 1; SIO = Op; SIO.CTRL = 1
 
   -- R sends the address to SIO.
-  16 R.CTRL = 0
+  16 SIO.CTRL = 0
 
-  -- Note that R.CTRL = 0 in the body.
+  -- Note that SIO.CTRL = 0 in the body.
   Body()
 
   -- End the operation for both R and SIO
