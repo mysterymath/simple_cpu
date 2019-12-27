@@ -377,3 +377,16 @@ Loop:
   SIOOp(SRC, 0, { WriteRFromSIO(VAL, 8) })
   SIOOp(DST, 1, { 8 * })
 </pre>
+
+First, we can use a 3-bit counter to divide CLK by 8 to form SCLK.
+This means a short time after every 8th low to high transition
+of CLK, SCLK will toggle.
+
+Now, we can pass values from an EEPROM to a shift register to be clocked in
+on the rising edge of CLK. Shortly after SCLK toggles low, we want the
+outputs of the various pins to reflect the most recent 8 bits. Before SCLK
+toggles low, they should respect the previous 8 bits.
+
+We can use something like this dual 4-bit counter:
+https://www.mouser.com/ProductDetail/Texas-Instruments/SN74HC393N?qs=sGAEpiMZZMtgJDuTUz7Xu%2F5xm1vzVukrpqKOi0LUIfA%3D
+There are cheaper counters, but they're more complex to use.
