@@ -404,7 +404,10 @@ RCLK for the shift register. We can clock in control values from the EEPROM
 on rising CLK, as the EEPROM will follow the SPI protocol.
 
 For an inverter, we can use something like:
-https://www.mouser.com/ProductDetail/Texas-Instruments/SN74HC04N?qs=sGAEpiMZZMuyBeSSR239Ias%252B1yN%2FIiBN8QXMU6O%252BGBM%3D
+https://www.mouser.com/ProductDetail/Texas-Instruments/SN74AHC240N?qs=sGAEpiMZZMtOwpHsRTkso3c7BmVStEd3eszXEBR%2Fxqs%3D
+This provides both and inverter and a tristate buffer in the same package, so
+this can be used both to invert the clock signal and to provide the tristate
+buffer needed for R and R.CTRL.
 
 For the EEPROM, we need at least a 1464 bits of storage, so we can get
 whatever larger than this. This might work:
@@ -412,3 +415,10 @@ https://www.mouser.com/ProductDetail/Microchip-Technology/25LC020A-I-P?qs=sGAEpi
 This holds 2KiBit and follows the SPI protocol. It thus prepares its outputs
 to be sampled on the rising edge of CLK, which is what our shift register
 will do.
+
+This means we can build the whole CPU with just 5 chips:
+- SRAM (Registers)
+- EEPROM (Microcode)
+- Shift Buffer with Registers (Microcode decoding)
+- Counter (Clock frequence divider)
+- Inverter (Clock polarity inverter and tristate SRAM control buffer)
