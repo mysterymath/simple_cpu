@@ -389,4 +389,26 @@ toggles low, they should respect the previous 8 bits.
 
 We can use something like this dual 4-bit counter:
 https://www.mouser.com/ProductDetail/Texas-Instruments/SN74HC393N?qs=sGAEpiMZZMtgJDuTUz7Xu%2F5xm1vzVukrpqKOi0LUIfA%3D
-There are cheaper counters, but they're more complex to use.
+There are cheaper counters, but they're more complex to use. On every 8th
+high to low transition of CLK, this counter will produce a high to low
+transition on its third-most-significant output pin. We can connect this as
+SCLK to both R and the external SCLK pin.
+
+For the control signals, we can use something like following shift register:
+https://www.mouser.com/ProductDetail/Texas-Instruments/SN74HC595N?qs=sGAEpiMZZMuyBeSSR239IeaeNSzgQbS%2F1btldJdqa6k%3D
+This shift register has a set of output flip-flops that allow us to decouple
+shifting in control data from a serial EEPROM and changing the values of the
+control pins themselves. We want the control values to change on falling
+SCLK, so we can use an inverter to use the falling SCLK to produce a rising
+RCLK for the shift register. We can clock in control values from the EEPROM
+on rising CLK, as the EEPROM will follow the SPI protocol.
+
+For an inverter, we can use something like:
+https://www.mouser.com/ProductDetail/Texas-Instruments/SN74HC04N?qs=sGAEpiMZZMuyBeSSR239Ias%252B1yN%2FIiBN8QXMU6O%252BGBM%3D
+
+For the EEPROM, we need at least a 1464 bits of storage, so we can get
+whatever larger than this. This might work:
+https://www.mouser.com/ProductDetail/Microchip-Technology/25LC020A-I-P?qs=sGAEpiMZZMsBc9mHkjPmUACkC2Ne363fSZIe4Meo9%2F8%3D
+This holds 2KiBit and follows the SPI protocol. It thus prepares its outputs
+to be sampled on the rising edge of CLK, which is what our shift register
+will do.
