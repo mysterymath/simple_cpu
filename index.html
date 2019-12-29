@@ -126,9 +126,11 @@ each begins and ends the corresponding operation. Only one may be active at a
 time.
 
 <p>So, we can take our CPU to have 7 connected pins: VCC, GND, CLK, SIO,
-SCLK, READ, and WRITE. SCLK is the SPI serial clock, which is an output for
-the processor, while CLK is an input to the processor. SCLK's frequency will
-usually be considerably less than CLK's.
+SCLK, READ, and WRITE. SCLK is the SPI serial clock, while CLK is an internal
+clock. Both are inputs to the processor, and SCLK must also be available to
+the bus. SCLK must be exactly 1/8th the frquency of CLK and should be nearly
+in phase. This allows CLK to drive an 8-bit shift register for each tick of
+SCLK, which is important to the CPU's implementation.
 
 <p>Now that we have a "physical layer," we need a protocol to send over it.
 We begin an operation by asserting READ or WRITE and sending the the 16-bit
@@ -378,21 +380,10 @@ Loop:
   SIOOp(DST, 1, { 8 * })
 </pre>
 
-First, we can use a 3-bit counter to divide CLK by 8 to form SCLK.
-This means a short time after every 8th low to high transition
-of CLK, SCLK will toggle.
-
-Now, we can pass values from an EEPROM to a shift register to be clocked in
-on the rising edge of CLK. Shortly after SCLK toggles low, we want the
-outputs of the various pins to reflect the most recent 8 bits. Before SCLK
-toggles low, they should respect the previous 8 bits.
-
-We can use something like this dual 4-bit counter:
-https://www.mouser.com/ProductDetail/Texas-Instruments/SN74HC393N?qs=sGAEpiMZZMtgJDuTUz7Xu%2F5xm1vzVukrpqKOi0LUIfA%3D
-There are cheaper counters, but they're more complex to use. On every 8th
-high to low transition of CLK, this counter will produce a high to low
-transition on its third-most-significant output pin. We can connect this as
-SCLK to both R and the external SCLK pin.
+We can pass values from an EEPROM to a shift register to be clocked in on the
+rising edge of CLK. Shortly after SCLK toggles low, we want the outputs of
+the various pins to reflect the most recent 8 bits. Before SCLK toggles low,
+they should respect the previous 8 bits.
 
 For the control signals, we can use something like following shift register:
 https://www.mouser.com/ProductDetail/Texas-Instruments/SN74HC595N?qs=sGAEpiMZZMuyBeSSR239IeaeNSzgQbS%2F1btldJdqa6k%3D
@@ -416,9 +407,8 @@ This holds 2KiBit and follows the SPI protocol. It thus prepares its outputs
 to be sampled on the rising edge of CLK, which is what our shift register
 will do.
 
-This means we can build the whole CPU with just 5 chips:
+This means we can build the whole CPU with just 4 chips:
 - SRAM (Registers)
 - EEPROM (Microcode)
 - Shift Buffer with Registers (Microcode decoding)
-- Counter (Clock frequence divider)
-- Inverter (Clock polarity inverter and tristate SRAM control buffer)
+- Tri-state Inverter (Clock polarity inverter and tristate SRAM control buffer)
