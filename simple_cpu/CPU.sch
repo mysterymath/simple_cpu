@@ -1,0 +1,296 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 2 2
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L power:+3V3 #PWR?
+U 1 1 5E0E7A98
+P 4200 2850
+F 0 "#PWR?" H 4200 2700 50  0001 C CNN
+F 1 "+3V3" H 4215 3023 50  0000 C CNN
+F 2 "" H 4200 2850 50  0001 C CNN
+F 3 "" H 4200 2850 50  0001 C CNN
+	1    4200 2850
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 5E0E836B
+P 4200 3450
+F 0 "#PWR?" H 4200 3200 50  0001 C CNN
+F 1 "GND" H 4205 3277 50  0000 C CNN
+F 2 "" H 4200 3450 50  0001 C CNN
+F 3 "" H 4200 3450 50  0001 C CNN
+	1    4200 3450
+	1    0    0    -1  
+$EndComp
+$Comp
+L Memory_EEPROM:25LCxxx U?
+U 1 1 5E0E5B69
+P 4200 3150
+F 0 "U?" H 3950 3400 50  0000 C CNN
+F 1 "25LCxxx" H 4400 3400 50  0000 C CNN
+F 2 "" H 4200 3150 50  0001 C CNN
+F 3 "http://ww1.microchip.com/downloads/en/DeviceDoc/21832H.pdf" H 4200 3150 50  0001 C CNN
+	1    4200 3150
+	1    0    0    -1  
+$EndComp
+$Comp
+L simple_cpu:23x640 U?
+U 1 1 5E0EE054
+P 5700 3700
+F 0 "U?" H 5550 4000 50  0000 C CNN
+F 1 "23x640" H 5800 4000 50  0000 C CNN
+F 2 "" H 5350 3900 50  0001 C CNN
+F 3 "" H 5350 3900 50  0001 C CNN
+	1    5700 3700
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 5E0EF52D
+P 3800 3050
+F 0 "#PWR?" H 3800 2800 50  0001 C CNN
+F 1 "GND" V 3805 2922 50  0000 R CNN
+F 2 "" H 3800 3050 50  0001 C CNN
+F 3 "" H 3800 3050 50  0001 C CNN
+	1    3800 3050
+	0    1    1    0   
+$EndComp
+$Comp
+L power:+3V3 #PWR?
+U 1 1 5E0EFBD7
+P 3800 3150
+F 0 "#PWR?" H 3800 3000 50  0001 C CNN
+F 1 "+3V3" V 3815 3278 50  0000 L CNN
+F 2 "" H 3800 3150 50  0001 C CNN
+F 3 "" H 3800 3150 50  0001 C CNN
+	1    3800 3150
+	0    -1   -1   0   
+$EndComp
+Text HLabel 3800 3250 0    50   Input ~ 0
+B~CS~
+Text HLabel 4600 3050 2    50   Input ~ 0
+~SCLK~
+Text HLabel 4600 3150 2    50   Input ~ 0
+BSI
+$Comp
+L power:GND #PWR?
+U 1 1 5E1029B7
+P 5400 3850
+F 0 "#PWR?" H 5400 3600 50  0001 C CNN
+F 1 "GND" V 5405 3722 50  0000 R CNN
+F 2 "" H 5400 3850 50  0001 C CNN
+F 3 "" H 5400 3850 50  0001 C CNN
+	1    5400 3850
+	0    1    1    0   
+$EndComp
+$Comp
+L power:+3V3 #PWR?
+U 1 1 5E10429A
+P 6050 3550
+F 0 "#PWR?" H 6050 3400 50  0001 C CNN
+F 1 "+3V3" V 6065 3678 50  0000 L CNN
+F 2 "" H 6050 3550 50  0001 C CNN
+F 3 "" H 6050 3550 50  0001 C CNN
+	1    6050 3550
+	0    1    1    0   
+$EndComp
+$Comp
+L power:+3V3 #PWR?
+U 1 1 5E10AA2C
+P 6050 3650
+F 0 "#PWR?" H 6050 3500 50  0001 C CNN
+F 1 "+3V3" V 6065 3778 50  0000 L CNN
+F 2 "" H 6050 3650 50  0001 C CNN
+F 3 "" H 6050 3650 50  0001 C CNN
+	1    6050 3650
+	0    1    1    0   
+$EndComp
+Text HLabel 6050 3750 2    50   Input ~ 0
+SCLK
+Text HLabel 6050 3850 2    50   Input ~ 0
+SIO
+Text HLabel 5400 3650 0    50   Input ~ 0
+SIO
+Text HLabel 4600 4150 2    50   Input ~ 0
+~SCLK~
+Text HLabel 4600 4250 2    50   Input ~ 0
+BSI
+Wire Wire Line
+	4600 3250 5400 3250
+Wire Wire Line
+	5400 3250 5400 3550
+Text HLabel 4600 4350 2    50   Input ~ 0
+SIO
+Text HLabel 2850 4150 2    50   Input ~ 0
+HCLK
+Text HLabel 2050 4350 0    50   Input ~ 0
+B~CS~
+$Comp
+L power:+3V3 #PWR?
+U 1 1 5E11FFA3
+P 2050 4250
+F 0 "#PWR?" H 2050 4100 50  0001 C CNN
+F 1 "+3V3" V 2065 4378 50  0000 L CNN
+F 2 "" H 2050 4250 50  0001 C CNN
+F 3 "" H 2050 4250 50  0001 C CNN
+	1    2050 4250
+	0    -1   -1   0   
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 5E11FF9D
+P 2050 4150
+F 0 "#PWR?" H 2050 3900 50  0001 C CNN
+F 1 "GND" V 2055 4022 50  0000 R CNN
+F 2 "" H 2050 4150 50  0001 C CNN
+F 3 "" H 2050 4150 50  0001 C CNN
+	1    2050 4150
+	0    1    1    0   
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 5E11FF91
+P 2450 4550
+F 0 "#PWR?" H 2450 4300 50  0001 C CNN
+F 1 "GND" H 2455 4377 50  0000 C CNN
+F 2 "" H 2450 4550 50  0001 C CNN
+F 3 "" H 2450 4550 50  0001 C CNN
+	1    2450 4550
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+3V3 #PWR?
+U 1 1 5E11FF8B
+P 2450 3950
+F 0 "#PWR?" H 2450 3800 50  0001 C CNN
+F 1 "+3V3" H 2465 4123 50  0000 C CNN
+F 2 "" H 2450 3950 50  0001 C CNN
+F 3 "" H 2450 3950 50  0001 C CNN
+	1    2450 3950
+	1    0    0    -1  
+$EndComp
+Text HLabel 2850 4250 2    50   Input ~ 0
+BSI
+$Comp
+L Memory_EEPROM:25LCxxx U?
+U 1 1 5E11FF97
+P 2450 4250
+F 0 "U?" H 2200 4500 50  0000 C CNN
+F 1 "25LCxxx" H 2650 4500 50  0000 C CNN
+F 2 "" H 2450 4250 50  0001 C CNN
+F 3 "http://ww1.microchip.com/downloads/en/DeviceDoc/21832H.pdf" H 2450 4250 50  0001 C CNN
+	1    2450 4250
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2850 4350 3300 4350
+Wire Wire Line
+	3300 4350 3300 4250
+Wire Wire Line
+	3300 4250 3800 4250
+Text HLabel 3800 4350 0    50   Input ~ 0
+B~CS~
+$Comp
+L power:GND #PWR?
+U 1 1 5E115D5A
+P 3800 4150
+F 0 "#PWR?" H 3800 3900 50  0001 C CNN
+F 1 "GND" V 3805 4022 50  0000 R CNN
+F 2 "" H 3800 4150 50  0001 C CNN
+F 3 "" H 3800 4150 50  0001 C CNN
+	1    3800 4150
+	0    1    1    0   
+$EndComp
+$Comp
+L Memory_EEPROM:25LCxxx U?
+U 1 1 5E115D54
+P 4200 4250
+F 0 "U?" H 3950 4500 50  0000 C CNN
+F 1 "25LCxxx" H 4400 4500 50  0000 C CNN
+F 2 "" H 4200 4250 50  0001 C CNN
+F 3 "http://ww1.microchip.com/downloads/en/DeviceDoc/21832H.pdf" H 4200 4250 50  0001 C CNN
+	1    4200 4250
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 5E115D4E
+P 4200 4550
+F 0 "#PWR?" H 4200 4300 50  0001 C CNN
+F 1 "GND" H 4205 4377 50  0000 C CNN
+F 2 "" H 4200 4550 50  0001 C CNN
+F 3 "" H 4200 4550 50  0001 C CNN
+	1    4200 4550
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+3V3 #PWR?
+U 1 1 5E115D48
+P 4200 3950
+F 0 "#PWR?" H 4200 3800 50  0001 C CNN
+F 1 "+3V3" H 4215 4123 50  0000 C CNN
+F 2 "" H 4200 3950 50  0001 C CNN
+F 3 "" H 4200 3950 50  0001 C CNN
+	1    4200 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R?
+U 1 1 5E12BBE0
+P 5400 3100
+F 0 "R?" H 5470 3146 50  0000 L CNN
+F 1 "R" H 5470 3055 50  0000 L CNN
+F 2 "" V 5330 3100 50  0001 C CNN
+F 3 "~" H 5400 3100 50  0001 C CNN
+	1    5400 3100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R?
+U 1 1 5E12CC57
+P 3300 4100
+F 0 "R?" H 3370 4146 50  0000 L CNN
+F 1 "R" H 3370 4055 50  0000 L CNN
+F 2 "" V 3230 4100 50  0001 C CNN
+F 3 "~" H 3300 4100 50  0001 C CNN
+	1    3300 4100
+	1    0    0    -1  
+$EndComp
+Connection ~ 5400 3250
+Connection ~ 3300 4250
+$Comp
+L power:+3V3 #PWR?
+U 1 1 5E12DDF0
+P 3300 3950
+F 0 "#PWR?" H 3300 3800 50  0001 C CNN
+F 1 "+3V3" H 3315 4123 50  0000 C CNN
+F 2 "" H 3300 3950 50  0001 C CNN
+F 3 "" H 3300 3950 50  0001 C CNN
+	1    3300 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+3V3 #PWR?
+U 1 1 5E12E216
+P 5400 2950
+F 0 "#PWR?" H 5400 2800 50  0001 C CNN
+F 1 "+3V3" H 5415 3123 50  0000 C CNN
+F 2 "" H 5400 2950 50  0001 C CNN
+F 3 "" H 5400 2950 50  0001 C CNN
+	1    5400 2950
+	1    0    0    -1  
+$EndComp
+$EndSCHEMATC

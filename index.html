@@ -338,9 +338,9 @@ DST = 4
 VAL = 6
 
 SIOOp(RAddr, Op, Body):
-  -- Begins a SIO operation at the address 
+  -- Begins a SIO operation at the address
   -- given by an address in R, executes the given body,
-  -- then ends any outstanding operations. 
+  -- then ends any outstanding operations.
 
   -- Select R and send it read code (00000011).
   6 R.CS = 0; R = 0; R.CTRL = 1
@@ -370,7 +370,7 @@ WriteRFromSIO(RAddr,Size):
   16 R = RAddr
 
   -- The bus writes to R.
-  -- Bus contention will occur here, but if our 
+  -- Bus contention will occur here, but if our
   -- CPU burns up, few tears will be shed.
   Size R.CTRL = 0
 
@@ -380,35 +380,13 @@ Loop:
   SIOOp(DST, 1, { 8 * })
 </pre>
 
-We can pass values from an EEPROM to a shift register to be clocked in on the
-rising edge of CLK. Shortly after SCLK toggles low, we want the outputs of
-the various pins to reflect the most recent 8 bits. Before SCLK toggles low,
-they should respect the previous 8 bits.
+There are only 2 control signals that need to be driven: SIO and CS. We can
+do so with 2 EEPROMs, each clocked with the inverse of SCLK. Both EEPROMs
+need at least 278 bits of storage. The EEPROM driving SIO will need to be
+periodically tri-stated so the bus can drive SIO. This can be done by driving
+its HOLD input with another EEPROM, for 3 in total. These 3 EEPROMs plus the
+memory allow us to build the while CPU with just 4 chips.
 
-For the control signals, we can use something like following shift register:
-https://www.mouser.com/ProductDetail/Texas-Instruments/SN74HC595N?qs=sGAEpiMZZMuyBeSSR239IeaeNSzgQbS%2F1btldJdqa6k%3D
-This shift register has a set of output flip-flops that allow us to decouple
-shifting in control data from a serial EEPROM and changing the values of the
-control pins themselves. We want the control values to change on falling
-SCLK, so we can use an inverter to use the falling SCLK to produce a rising
-RCLK for the shift register. We can clock in control values from the EEPROM
-on rising CLK, as the EEPROM will follow the SPI protocol.
-
-For an inverter, we can use something like:
-https://www.mouser.com/ProductDetail/Texas-Instruments/SN74AHC240N?qs=sGAEpiMZZMtOwpHsRTkso3c7BmVStEd3eszXEBR%2Fxqs%3D
-This provides both and inverter and a tristate buffer in the same package, so
-this can be used both to invert the clock signal and to provide the tristate
-buffer needed for R and R.CTRL.
-
-For the EEPROM, we need at least a 1464 bits of storage, so we can get
-whatever larger than this. This might work:
-https://www.mouser.com/ProductDetail/Microchip-Technology/25LC020A-I-P?qs=sGAEpiMZZMsBc9mHkjPmUACkC2Ne363fSZIe4Meo9%2F8%3D
-This holds 2KiBit and follows the SPI protocol. It thus prepares its outputs
-to be sampled on the rising edge of CLK, which is what our shift register
-will do.
-
-This means we can build the whole CPU with just 4 chips:
-- SRAM (Registers)
-- EEPROM (Microcode)
-- Shift Buffer with Registers (Microcode decoding)
-- Tri-state Inverter (Clock polarity inverter and tristate SRAM control buffer)
+For the EEPROM we may be able to use:
+https://www.mouser.com/ProductDetail/Microchip-Technology/25LC010A-I-P?qs=sGAEpiMZZMsBc9mHkjPmUACkC2Ne363fBzHrY%252B73jQQ%3D
+This holds 1KiBit and follows the SPI protocol.
