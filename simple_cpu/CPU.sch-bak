@@ -82,7 +82,7 @@ $EndComp
 Text HLabel 3800 3250 0    50   Input ~ 0
 B~CS~
 Text HLabel 4600 3050 2    50   Input ~ 0
-~SCLK~
+SCLK
 Text HLabel 4600 3150 2    50   Input ~ 0
 BSI
 $Comp
@@ -125,7 +125,7 @@ SIO
 Text HLabel 5400 3650 0    50   Input ~ 0
 SIO
 Text HLabel 4600 4150 2    50   Input ~ 0
-~SCLK~
+SCLK
 Text HLabel 4600 4250 2    50   Input ~ 0
 BSI
 Wire Wire Line
@@ -245,6 +245,52 @@ F 1 "+3V3" H 4215 4123 50  0000 C CNN
 F 2 "" H 4200 3950 50  0001 C CNN
 F 3 "" H 4200 3950 50  0001 C CNN
 	1    4200 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R?
+U 1 1 5E12BBE0
+P 5400 3100
+F 0 "R?" H 5470 3146 50  0000 L CNN
+F 1 "R" H 5470 3055 50  0000 L CNN
+F 2 "" V 5330 3100 50  0001 C CNN
+F 3 "~" H 5400 3100 50  0001 C CNN
+	1    5400 3100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R?
+U 1 1 5E12CC57
+P 3300 4100
+F 0 "R?" H 3370 4146 50  0000 L CNN
+F 1 "R" H 3370 4055 50  0000 L CNN
+F 2 "" V 3230 4100 50  0001 C CNN
+F 3 "~" H 3300 4100 50  0001 C CNN
+	1    3300 4100
+	1    0    0    -1  
+$EndComp
+Connection ~ 5400 3250
+Connection ~ 3300 4250
+$Comp
+L power:+3V3 #PWR?
+U 1 1 5E12DDF0
+P 3300 3950
+F 0 "#PWR?" H 3300 3800 50  0001 C CNN
+F 1 "+3V3" H 3315 4123 50  0000 C CNN
+F 2 "" H 3300 3950 50  0001 C CNN
+F 3 "" H 3300 3950 50  0001 C CNN
+	1    3300 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+3V3 #PWR?
+U 1 1 5E12E216
+P 5400 2950
+F 0 "#PWR?" H 5400 2800 50  0001 C CNN
+F 1 "+3V3" H 5415 3123 50  0000 C CNN
+F 2 "" H 5400 2950 50  0001 C CNN
+F 3 "" H 5400 2950 50  0001 C CNN
+	1    5400 2950
 	1    0    0    -1  
 $EndComp
 $EndSCHEMATC
