@@ -329,28 +329,27 @@ In total, 240 cycles. Not too shabby!
 </pre>
 
 <h3>Main Cycle for SIO</h3>
-This isn't quite right, since we haven't incorporated the effect of HOLD yet.
+This includes the effect of the SIO.!HOLD signal, since this EEPROM is held for those cycles.
 <pre>
   7 SIO = 0
   2 SIO = 1
-  33 SIO = 0
-  6 SIO = 0
-  SIO = 1
-  73 SIO = 0
-  2 SIO = 1
-  14 SIO = 0
+  22 SIO = 0
   SIO = 1
   24 SIO = 0
+  2 SIO = 1
+  14 SIO = 0
+  SIO = 1
+  7 SIO = 0
   SIO = 1
   14 SIO = 0
   2 SIO = 1
-  10 SIO = 0
+  SIO = 0
   SIO = 1
   6 SIO = 0
   2 SIO = 1
   13 SIO = 0
   SIO = 1
-  27 SIO = 0
+  2 SIO = 0
 </pre>
 
 <h3>Main Cycle for SIO.!HOLD</h3>
@@ -359,12 +358,10 @@ This isn't quite right, since we haven't incorporated the effect of HOLD yet.
   17 SIO.!HOLD = 0
   24 SIO.!HOLD = 1
   49 SIO.!HOLD = 0
-
   25 SIO.!HOLD = 1
   17 SIO.!HOLD = 0
   24 SIO.!HOLD = 1
   9 SIO.!HOLD = 0
-
   25 SIO.!HOLD = 1
   25 SIO.!HOLD = 0
 </pre>
