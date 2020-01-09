@@ -63,101 +63,6 @@ various rule sets, I've chosen the following:
 </div>
 
 <div class="intro">
-<h2>The Interface</h2>
-<p>Before we delve into the design of such a CPU, what function must a CPU
-actually perform in a system? The simpler the CPU's job can be made, the
-simpler it's design can be. Well, in a modern computer architecture, a CPU
-communicates with the rest of the computer via a bus. Over the bus, the CPU
-requests information and delivers the results of computations to the
-appropriate subsytems, as directed by the users program, stored in memory.
-</div>
-
-<p>The most important device sitting behind a bus is the main memory, so
-let's start there. There are two operations the CPU could issue to the memory
-via the bus: read and write. Both involve an address and one byte of data.
-For a read, the CPU supplies the address to the bus, and the memory supplies
-the data to the bus. For a write, the CPU supplies both the address and the
-data to the bus.
-
-<p>Some CPU designs have dedicated techniques for handling other non-memory
-peripherals, but using memory-mapped I/O, essentially any hardware device can
-be controlled with just the above two operations: read and write. Each device
-connected to the CPU via the bus gets its own dedicated address range, and
-exposes its functionality to the CPU in terms of reads from and writes to
-those locations. The main memory chip only responds to address regions that
-correspond to RAM; these and the memory regions for each device on the bus
-are mutually exclusive.
-
-<p>I like 8-bit systems with 16-bit addresses, so let's start there. This
-gives us 64KB of addressable space over the bus, with 256 values per word.
-Now, physically, how might the CPU request and deliver words with the rest of
-the system? A simple bus design is the Serial Peripheral Interface (SPI). SPI
-communicates data between a master (the CPU) and various chips using a clock
-line (SCLK), a master serial output (MOSI), a master serial input (MISO), and
-a chip select line (CS). The basic idea is that CS selects a chip, and the
-CPU can send bits of data to it using MOSI, while the chip can send bits
-of data to the CPU using MISO. The timing of the data is controlled by
-SCLK. Once the operation is finished, CS deselects the chip.
-
-<p>SPI can be used in a number of configurations. For reasons I'll get into
-later, let's say the leading edge of the clock is the rising edge (CPOL=0).
-Inputs are captured on the leading edge of the clock, while outputs are
-changed on the trailing edge of the clock (CPHA=0). Furthermore, we'll only
-use SPI in half-duplex mode, meaning only one of MOSI and MISO can be driven
-at a time. They can thus share a wire; we are using SPI in "three-wire mode."
-We can thus combine the MOSI/MISO lines into one; call it SIO.
-
-<p>There are two operations the CPU can do on the bus: read and write. Since
-there are just two operations, the CPU only needs to send one bit to the bus
-to indicate which operation is being performed. It would seem to be simplest
-to just begin each operation by sending this bit over SIO, but it's actually
-a bit simpler to include an additional wire for this. The reasoning will
-become clearer once the internals of the CPU are discussed, but the jist is
-that all of the other bits that will be sent to the bus are copies of bits
-originally received from the bus. This is not the case for the operation bit,
-which is sourced from the CPU's internal control logic. These two functions
-are necessarily performed by different chips, and so both would need to drive
-the bus at different times if this bit were sent across the bus. By sending
-the operation on an additional wire, this can be avoided.
-
-<p>A conceptually simpler way to do the above is to have two CS lines instead
-of one: a READ line and a WRITE line. We'll take each to be active high, and
-each begins and ends the corresponding operation. Only one may be active at a
-time.
-
-<p>So, we can take our CPU to have 7 connected pins: VCC, GND, CLK, SIO,
-SCLK, READ, and WRITE. SCLK is the SPI serial clock, while CLK is an internal
-clock. Both are inputs to the processor, and SCLK must also be available to
-the bus. SCLK must be exactly 1/8th the frquency of CLK and should be nearly
-in phase. This allows CLK to drive an 8-bit shift register for each tick of
-SCLK, which is important to the CPU's implementation.
-
-<p>Now that we have a "physical layer," we need a protocol to send over it.
-We begin an operation by asserting READ or WRITE and sending the the 16-bit
-address. If the operation was a read, the CPU listens for the result (after a
-bit; more on this below). If the operation was a write, the CPU sends the
-bits to write. For as long as CS is selected, bus will continue to send or
-receive additional data, which will be considered to apply to successively
-increasing addresses with a 64KiB wraparound. The operation ends when the CS
-line is deselected; this must occur on an 8-bit boundary, and at least 8 bits
-of data must be read/written.
-
-<p>Now for something very mysterious: on each READ cycle, after the CPU sends
-the address, the bus cycle waits exactly 25 SCLK cycles before sending the
-data. Why on earth would we do that? Well, the memory that we'll be using
-inside the processor will need exactly 25 cycles to be prepared to store the
-data from the bus at the appropriate internal location. This is almost
-cheating, but not quite; the bus can be pretty darn custom to internal CPU
-operations, but the CPU is still in charge; it can issue whatever reads and
-writes it wants. Anything else can drive the bus for that matter, so long as
-it can cope with this 25 cycle delay.
-
-<p>The bus design is not very original; it's a fairly tweaked version of a
-real Microchip SPI SRAM. Thus, there's good reason to think a practical bus
-controller could implement it, and we needn't feel too bad coding up this
-logic in Python in our Raspberry PI.
-
-<div class="intro">
 <h2>The Instruction Set</h2>
 <p>Now that we have a mechanism for the processor to speak with the rest of
 the system, what will it talk about? Traditionally, the processor reads an
@@ -327,66 +232,88 @@ ADD a b dst [jmp]
 
 <div class="intro">
 <h2>Implementation</h2>
-<p>Here we take <code>&X</code> to be the address of the location
-<code>X</code> in R. The instructions are laid out in RAM in the order jmp,
-src, dst. * by itself indicates a repeat of the previous state.
 
+<h3>Main Cycle</h3>
 <pre>
-IP = 0
-SRC = 2
-DST = 4
-VAL = 6
+-- Read instruction from SIO into R
+  -- Begin read (0) on SIO
+  !CS = 0; SIO.!HOLD = 1; SIO = 0
 
-SIOOp(RAddr, Op, Body):
-  -- Begins a SIO operation at the address
-  -- given by an address in R, executes the given body,
-  -- then ends any outstanding operations.
+  -- Begin read of IP (0) on R
+  6 R.!CS = 0; SIO = 0
+  2 SIO = 1
+  16 SIO = 0
 
-  -- Select R and send it read code (00000011).
-  6 R.CS = 0; R = 0; R.CTRL = 1
-  2 R = 1
+  -- R sends instruction address (*IP) to SIO
+  16 SIO.!HOLD = 0
+  R.!CS = 1
 
-  -- Write the address to R; begin op on SIO.
-  16 R = RAddr
+  -- Begin write of IP (0) on R
+  6 R.!CS = 0; SIO.!HOLD = 1; SIO = 0
+  SIO = 1
+  SIO = 0
+  16 SIO = 0
 
-  -- R sends the address to SIO.
-  16 Op = 1
+  -- SIO sends instruction to R
+  48 SIO.!HOLD = 0
+  R.!CS = 1; !CS = 1
 
-  Body()
+-- Read value from SIO into R
+  -- Begin read (0) on SIO
+  !CS = 0; SIO.!HOLD = 1; SIO = 0
 
-  -- End the operation for both R and SIO
-  R.CS = 1; READ = 0; WRITE = 0
+  -- Begin read of SRC (2) on R
+  6 R.!CS = 0; SIO = 0
+  2 SIO = 1
+  14 SIO = 0
+  SIO = 1
+  SIO = 0
 
-WriteRFromSIO(RAddr,Size):
-  -- End outstanding operation on R.
-  R.CS = 1
+  -- R sends source address to SIO
+  16 SIO.!HOLD = 0
+  R.!CS = 1
 
-  -- Begin new operation on R and send it write code (00000010).
-  6 R.CS = 0; R = 0
-  R = 1
-  R = 0
+  -- Begin write of VAL (6) on R
+  6 R.!CS = 0; SIO.!HOLD = 1; SIO = 0
+  SIO = 1
+  SIO = 0
+  13 SIO = 0
+  2 SIO = 1
+  SIO = 0
 
-  -- Send the write address to R.
-  16 R = RAddr
+  -- SIO sends value to R
+  8 SIO.!HOLD = 0
+  R.!CS = 1; !CS = 1
 
-  -- The bus writes to R.
-  -- Bus contention will occur here, but if our
-  -- CPU burns up, few tears will be shed.
-  Size R.CTRL = 0
+-- Write value from R to SIO
+  -- Begin write (1) on SIO
+  !CS = 0; SIO.!HOLD = 1; SIO = 1
 
-Loop:
-  SIOOp(IP, 0, { WriteRFromSIO(IP, 48) })
-  SIOOp(SRC, 0, { WriteRFromSIO(VAL, 8) })
-  SIOOp(DST, 1, { 8 * })
+  -- Begin read of DST (4) on R
+  6 R.!CS = 0; SIO = 0
+  2 SIO = 1
+  13 SIO = 0
+  SIO = 1
+  2 SIO = 0
+
+  -- R sends destination address and value to SIO
+  24 SIO.!HOLD = 0
+  R.!CS = 1; !CS = 1
 </pre>
 
-There are only 2 control signals that need to be driven: SIO and CS. We can
-do so with 2 EEPROMs, each clocked with the inverse of SCLK. Both EEPROMs
-need at least 278 bits of storage. The EEPROM driving SIO will need to be
-periodically tri-stated so the bus can drive SIO. This can be done by driving
-its HOLD input with another EEPROM, for 3 in total. These 3 EEPROMs plus the
-memory allow us to build the while CPU with just 4 chips.
+In total, 240 cycles. Not too shabby!
 
-For the EEPROM we may be able to use:
-https://www.mouser.com/ProductDetail/Microchip-Technology/25LC010A-I-P?qs=sGAEpiMZZMsBc9mHkjPmUACkC2Ne363fBzHrY%252B73jQQ%3D
-This holds 1KiBit and follows the SPI protocol.
+<h3>Main Cycle for R.!CS</h3>
+<pre>
+  R.!CS = 1
+  40 R.!CS = 0
+  R.!CS = 1
+  72 R.!CS = 0
+  2 R.!CS = 1
+  40 R.!CS = 0
+  R.!CS = 1
+  32 R.!CS = 0
+  2 R.!CS = 1
+  48 R.!CS = 0
+  R.!CS = 1
+</pre>
