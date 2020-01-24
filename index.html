@@ -83,7 +83,8 @@ maybe less so for the I/O devices).
 the standard. How big should addresses be? A multiple of 8 bits would allow
 them to be stored in RAM without waste. 8-bit addresses would only allow 256
 addressable bytes, but 16-bit addresses work just fine, allowing 64KiB of
-address space.
+address space. The addresses are stored big-endian, since that's what the
+chips used in the implementation expect.
 
 <div class="intro">
 <h3>Instruction Set</h3>
@@ -125,11 +126,24 @@ surprisingly practical (for a hilariously impractical value of practical).
 <h2>Synthesizing Addition: <a href="https://en.wikipedia.org/wiki/IBM_1620">Can't Add, Doesn't Even Try</a></h2>
 <p>To provide an intuition of how computation can be done with just a
 glorified move instruction, I'll synthesize an 8-bit addition instruction
-using only byte byte jump and constant memory tables.
-</div>
+using only byte byte jump.
 
-<p>First, a few notational conventions. Let's refer to our base instruction as
-follows:
+<p>How might we construct addition? Well, imagine we have a "giant" table
+that takes up the entire 64KiB address space. Such a table could be indexed
+by a pair of 8 bit values; one forming the high byte of the value, and the
+other forming the low byte. In such a table, we could just store the sum of
+the two indices; an indexed lookup into this table would allow adding any two
+8-bit values.
+
+<p>Unfortunately, this wouldn't leave room in the address space for anything
+else. But this is just a matter of size. The complete table of 4-bit by 4-bit
+sums occupies only 256 addresses. Call this table <code>sum4[256]</code>; it
+contains the 8-bit result of adding the low 4 bits of the index to the high 4
+bits. Assume that any such tables are preloaded into the address space as
+part of the program.
+
+<p>First, a few notational conventions. I'll refer to our base byte byte jump
+instruction as follows:
 <pre>
 loc: MOV src dst [jmp] -- comment
 </pre>
@@ -144,12 +158,31 @@ will avoid here specifying how the instruction is laid out in RAM, but each
 part of an instruction at <code>loc</code> can be referred to using
 <code>loc.src</code>, <code>loc.dst</code>, or <code>loc.jmp</code>.
 
+<p>Using this notation, I can now define an 8-bit table lookup. It consists
+of two instructions. The first overwrites the low 8 bits of the second's
+source address. Then, when the second executes, it loads from the offset
+location within the table indicated by its fixed high byte.
+
 <pre>
-MOV_INDIR src lo dst [jmp]:
-  -- *target = *(src &lt;&lt; 8 | *lo)
+MOV_INDIR8 src lo dst [jmp]:
+  -- *dst = *(src &amp; 0xFF00 | *lo)
   MOV lo loc.src+1
   loc: MOV src dst jmp
+</pre>
 
+<p>Using this lookup and the sum table, a 4-bit addition operation can be constructed:
+
+<pre>
+ADD4 a dst [jmp]:
+  -- *dst = (*a &gt;&gt; 4) + (*a &amp; 0x0F)
+  MOV_INDIR8 sum4 a jmp
+</pre>
+
+<p>A weird 4-bit addition isn't really the goal though; I want 8-bit
+addition! How might we get there from here?
+
+<pre>
+TODO: Move into position
 MOV_INDIR16 hi lo dst [jmp]:
   -- *target = *(*hi &lt;&lt; 8 | *lo)
   MOV hi loc.src
@@ -157,29 +190,6 @@ MOV_INDIR16 hi lo dst [jmp]:
   loc: MOV 0xDEADBEEF dst jmp
 </pre>
 
-<p>Given indirect accesses, I can perform lookups in tables. The contents of
-various tables can be presented to the CPU by attaching ROM chips to the
-system bus, or by loading them into RAM during a bootstrapping procedure.
-Regardless, we can feel free to presume that whatever data we want can be
-preloaded into RAM at whatever addresses we wish.
-
-<p>Imagine we have a giant table that takes up the entire 64KB address space.
-Such a table could be indexed by a pair of 8 bit values; one forming the high
-byte of the value, and the other forming the low byte. In such a table, we
-could just store the sum of the two indices; an indexed lookup into this
-table would allow adding any two 8-bit values.
-
-<p>Unfortunately, this wouldn't leave room in the address space for anything
-else. But, we can instead consider a 4-bit sum table. The complete table of
-4-bit vs 4-bit sums occupies only 256 addresses, and can be indexed using a
-single byte. All such tables would need to be aligned to 256-bytes. Let's call
-this table <code>sum4[256]</code>:
-
-<pre>
-ADD4 a dst [jmp]:
-  -- *dst = (*a &gt;&gt; 4) + (*a &amp; 0x0F)
-  MOV_INDIR sum4 a jmp
-</pre>
 
 <p>However, to use this, we need to be able to manipulate the high and low
 4-bit portions of bytes. Let's build a handful of 4-bit manpulation
