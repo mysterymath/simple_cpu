@@ -30,61 +30,80 @@
 <h1>A Simple CPU</h1>
 <h2>What Does it Take?</h2>
 <p>If I wanted to make a CPU "from scratch," what would it take? What is the
-simplest CPU that can be built? Inspired by <i>The Toaster Project</i>, I've
+simplest CPU that I can build? Inspired by <i><a
+href="http://www.thetoasterproject.org">The Toaster Project</a></i>, I've
 been exploring this question.
 </div>
 
-<p>Right off the bat, I realized that "simplest" is extremely subjective and
-vague. Depending on how this word is interpreted, it could range anywhere
-from manually wiring relays using copper wire to buying a CPU off the shelf.
-For the game to be any fun, it'll need some rules.
+<p>"From scratch" and "simplest" are both rather vague. Depending on
+interpretation, they could range anywhere from mining copper (hats off to
+you, Toaster Guy) to buying a CPU off the shelf. If the task is too easy, it
+won't feel satisfying. Too hard and it's not achievable at all. Some ground
+rules seem in order.
 
-<p>The rules can be whatever we like, but the goal of making a simplest CPU
-will necessarily involve, at least in part, the most gratiutous allowable
-abuse of the rules. Accordingly, the nature of the rules will control a great
-deal of the project's nature. After carefully examining the consequences of
-various rule sets, I've chosen the following:
+<p>Making a "simplest" anything almost necessarily involves the most
+gratiutous allowable abuse of the rules. Accordingly, the rules will control
+a great deal of the project's nature. After carefully examining the
+consequences of various rule sets, I've chosen the following:
 <ul>
     <li>The CPU should be integrable in a "real system". Together they should
     be capable of doing usual computer things like I/O, addition,
     subtraction, etc.
     <li>Any parts of the CPU purchased from the store must not be specifically intended
-    for inclusion in a CPU.
+    for inclusion in a CPU. This precludes purchasing ALUs and the like.
     <li>No FPGAs, CPLDs or the like in the CPU. Purchased parts must be
     limited in the sorts of functions they be made to directly compute.
-    <li>The CPU should use as few components as possible.
-    <li>The CPU should be responsible for the overall control of data
-    processing in the system. While this rule is very vague, it's spirit
-    rules out a class of cheats where a peripheral or the bus itself can be
-    made so smart as to make the CPU too trivial.
-    <li>The rest of the system will be played by a Raspberry PI's GPIO
-    pins (3.3V).
+    Otherwise this becomes "just another FPGA CPU project."
+    <li>The CPU must be responsible for the overall control of the system.
+    <li>The CPU should use as few components and wires as possible.
 </ul>
 </div>
 
 <div class="intro">
-<h2>The Instruction Set</h2>
-<p>Now that we have a mechanism for the processor to speak with the rest of
-the system, what will it talk about? Traditionally, the processor reads an
-instruction from the system, then does some arithmetic operation or other
-internal processing. Some instructions may read values from the system, write
-values to the system, or both.
+<h2>Abstract CPU Design</h2>
+<p>What exactly does a CPU do? Well, a CPU reads an instruction from the
+system, then does whatever it says. Some instructions may involve obtaining
+additional information from the system, delivering information to the system,
+or both.
+</div>
+
 <div class="intro">
+<h3>Communciations</h3>
+<p>The CPU needs to be able to read/write main memory and to perform I/O. Via
+the <a href="https://en.wikipedia.org/wiki/Memory-mapped_I/O">memory mapped
+I/O</a> approach, certain address regions can be reserved for I/O devices,
+with the rest mapping to main memory. I/O devices themselves answer reads and
+writes for these regions, and various combinations of reads and writes
+correspond to the avialable I/O operations. This allows one mechanism to be
+used for all CPU/system communications. Nice and simple for the CPU (although
+maybe less so for the I/O devices).
+</div>
 
-<p>When designing the instruction set, how many instructions are necessary?
-If the goal is to be as simple as possible, it turns out the answer is one.
-There are a dazzing variety of "one instruction set computer" architectures,
-where the computer has exactly one way of interacting with the rest of the
-system, that it repeats indefinitely. Even so, given the magic of
-Turing-completeness, the processor is able to simulate far more rich
-instruction sets.
+<p>The address space should be 8-bit byte-addressable, since that's long been
+the standard. How big should addresses be? A multiple of 8 bits would allow
+them to be stored in RAM without waste. 8-bit addresses would only allow 256
+addressable bytes, but 16-bit addresses work just fine, allowing 64KiB of
+address space.
 
-<p>Of all the Turing-complete instructions available, which should we select?
-Our chosen bus suggests a natural answer. An OISC called "byte byte jump"
-consists exclusively of the two basic operations: read and write. Couldn't be
-simpler for our architecture.
+<div class="intro">
+<h3>Instruction Set</h3>
+<p> How many different kinds of operations does the CPU need to be able to
+perform? If the goal is to be as simple as possible, only one. There are a
+dazzling variety of <a
+href="https://en.wikipedia.org/wiki/One_instruction_set_computer">one
+instruction set computer</a> (OISC) architectures, where the computer has exactly
+one way of interacting with the rest of the system. By the magic of
+Turing-equivalency, any such processor is able to simulate far more rich
+instruction sets, just by repeating that one interaction ad infinitum.
+</div>
 
-<p>A byte byte jump instruction consists of the following 48-bits:
+<p>Of all the OISC available, which is simplest to implement? Our chosen
+communication scheme suggests a natural answer: <a
+href="https://esolangs.org/wiki/ByteByteJump">byte byte jump</a>. This OISC
+consists exclusively of the two basic communication operations: read and
+write.
+
+<p>A byte byte jump instruction contains the following 48-bits:
 <ul>
     <li>A 16-bit source address
     <li>A 16-bit destination address
@@ -93,20 +112,20 @@ simpler for our architecture.
 
 <p>A CPU implementing byte byte jump would do the following repeatedly:
 <ul>
-    <li>Read the 48 bits at processors instruction pointer.
-    <li>Read the 8 bits at the source address and then write them to the source address.
+    <li>Read the source, destination and jump addresses at the CPU's instruction pointer.
+    <li>Read the byte at the source address and write it to the destination address.
     <li>Change the processor's instruction pointer to the jump address.
 </ul>
 
-<p>That's it! A CPU capable of doing the above can compute any computable function.
-</div>
-</div>
+<p>That's it! A CPU that can do the above can compute any computable
+function. It's not an ivory tower theoretical "can" either; the reduction is
+surprisingly practical (for a hilariously impractical value of practical).
 
-<h3>The Synthesis of Addition</h3>
-<p>To provide an intuition of how computation can be done with just a move
-instruction, we will now synthesize an addition macro instruction from the
-above. This section stands on its own; feel free to skip it if you believe that
-the above instruction is both sufficient and practical.
+<div class="intro">
+<h2>Synthesizing Addition: <a href="https://en.wikipedia.org/wiki/IBM_1620">Can't Add, Doesn't Even Try</a></h2>
+<p>To provide an intuition of how computation can be done with just a
+glorified move instruction, I'll synthesize an 8-bit addition instruction
+using only byte byte jump and constant memory tables.
 </div>
 
 <p>First, a few notational conventions. Let's refer to our base instruction as
@@ -115,14 +134,15 @@ follows:
 loc: MOV src dst [jmp] -- comment
 </pre>
 
-<p>The <code>jmp</code> argument is optional; if omitted, the address of the
-next instruction. <code>loc</code> refers to the address of the instruction
-itself. Comments begin with <code>--</code> and continue until the end of the
-line. Temporary locations are indicated by <code>t[n]</code>, for some positive
-integer <code>n</code> (optional). Locations and temporaries are considered
-local to each macro instruction. We will avoid here specifying how the
-instruction is laid out in RAM, but each part of an instruction at loc
-can be referred to using loc.src, loc.dst, or loc.jmp.
+<p>The <code>jmp</code> argument is optional; if omitted, it implicitly
+refers to the address of the next instruction. <code>loc</code> refers to the
+address of the instruction itself. Comments begin with <code>--</code> and
+continue until the end of the line. Temporary locations are indicated by
+<code>t[n]</code>, for some positive integer <code>n</code> (optional).
+Locations and temporaries are considered local to each macro instruction. I
+will avoid here specifying how the instruction is laid out in RAM, but each
+part of an instruction at <code>loc</code> can be referred to using
+<code>loc.src</code>, <code>loc.dst</code>, or <code>loc.jmp</code>.
 
 <pre>
 MOV_INDIR src lo dst [jmp]:
@@ -137,8 +157,8 @@ MOV_INDIR16 hi lo dst [jmp]:
   loc: MOV 0xDEADBEEF dst jmp
 </pre>
 
-<p>Given indirect accesses, we can now construct and use tables. The contents
-of various tables can be presented to the CPU by attaching ROM chips to the
+<p>Given indirect accesses, I can perform lookups in tables. The contents of
+various tables can be presented to the CPU by attaching ROM chips to the
 system bus, or by loading them into RAM during a bootstrapping procedure.
 Regardless, we can feel free to presume that whatever data we want can be
 preloaded into RAM at whatever addresses we wish.
