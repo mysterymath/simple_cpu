@@ -1,5 +1,6 @@
 <!doctype html>
 <title>A Simple CPU</title>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width">
 <style>
     html {
@@ -31,22 +32,20 @@
     a:visited {
       color: #d33682;
     }
-    .intro {
-        break-inside: avoid;
-    }
     code, pre {
       font-size: large;
     }
+    .not {
+      text-decoration: overline;
+    }
 </style>
 <div class="content">
-<div class="intro">
 <h1>A Simple CPU</h1>
 <h2>What Does it Take?</h2>
 <p>If I wanted to make a CPU "from scratch," what would it take? What is the
 simplest CPU that I can build? Inspired by <i><a
 href="http://www.thetoasterproject.org">The Toaster Project</a></i>, I've
 been exploring this question.
-</div>
 
 <p>"From scratch" and "simplest" are both rather vague. Depending on
 interpretation, they could range anywhere from mining copper (hats off to
@@ -71,15 +70,12 @@ consequences of various rule sets, I've chosen the following:
     <li>The CPU should use as few components and wires as possible.
 </ul>
 
-<div class="intro">
 <h2>Abstract CPU Design</h2>
 <p>What exactly does a CPU do? Well, a CPU reads an instruction from the
 system, then does whatever it says. Some instructions may involve obtaining
 additional information from the system, delivering information to the system,
 or both.
-</div>
 
-<div class="intro">
 <h3>Communciations</h3>
 <p>The CPU needs to be able to read/write main memory and to perform I/O. Via
 the <a href="https://en.wikipedia.org/wiki/Memory-mapped_I/O">memory mapped
@@ -89,7 +85,6 @@ writes for these regions, and various combinations of reads and writes
 correspond to the avialable I/O operations. This allows one mechanism to be
 used for all CPU/system communications. Nice and simple for the CPU (although
 maybe less so for the I/O devices).
-</div>
 
 <p>The address space should be 8-bit byte-addressable, since that's long been
 the standard. How big should addresses be? A multiple of 8 bits would allow
@@ -98,7 +93,6 @@ addressable bytes, but 16-bit addresses work just fine, allowing 64KiB of
 address space. The addresses are stored big-endian, since that's what the
 chips used in the implementation expect.
 
-<div class="intro">
 <h3>Instruction Set</h3>
 <p> How many different kinds of operations does the CPU need to be able to
 perform? If the goal is to be as simple as possible, only one. There are a
@@ -108,7 +102,6 @@ instruction set computer</a> (OISC) architectures, where the computer has exactl
 one way of interacting with the rest of the system. By the magic of
 Turing-equivalency, any such processor is able to simulate far more rich
 instruction sets, just by repeating that one interaction ad infinitum.
-</div>
 
 <p>Of all the OISC available, which is simplest to implement? Our chosen
 communication scheme suggests a natural answer: <a
@@ -124,17 +117,16 @@ write.
 </ul>
 
 <p>A CPU implementing byte byte jump would do the following repeatedly:
-<ul>
+<ol>
     <li>Read the source, destination and jump addresses at the CPU's instruction pointer.
     <li>Read the byte at the source address and write it to the destination address.
     <li>Change the processor's instruction pointer to the jump address.
-</ul>
+</ol>
 
 <p>That's it! A CPU that can do the above can compute any computable
 function. It's not an ivory tower theoretical "can" either; the reduction is
 surprisingly practical (for a hilariously impractical value of practical).
 
-<div class="intro">
 <h2>Synthesizing Addition: <a href="https://en.wikipedia.org/wiki/IBM_1620">Can't Add, Doesn't Even Try</a></h2>
 <p>To provide an intuition of how computation can be done with just a
 glorified move instruction, I'll sketch some of the strategies used to
@@ -193,8 +185,156 @@ CADET during devolpment; some in the user community suggested that this
 acronym stood for "Can't Add, Doesn't Even Try". But, even machines like
 these can't add, they sure do a good impression of those that can!
 
-<div class="intro">
 <h2>Implementation</h2>
+
+<h3>CPU Registers</h3>
+
+<p>What would a hardware implementation of byte byte jump look like? Recall
+the definition of the operation:
+
+<ol>
+    <li>Read the source, destination and jump addresses at the CPU's instruction pointer.
+    <li>Read the byte at the source address and write it to the destination address.
+    <li>Change the processor's instruction pointer to the jump address.
+</ol>
+
+<p>Incorporating a bit more detail into how the CPU communicates with the
+system gives the following:
+
+<ol>
+    <li>Execute a system read operation using the CPU's instruction pointer.
+    Save the 48 bits read from the system somewhere inside the processor.
+    Store some of the bits as the new instruction pointer, and the others in
+    CPU registers for the source and destination addresses.
+    <li>Execute a system read operation at the source address, and save next
+    8 bits in a location for the source value.
+    <li>Execute a system write operation at the destination address and
+    provide the 8 source value bits.
+</ol>
+
+<p>In the above, assume that the system can provide more than one byte's
+worth of data per read. This simplifies things quite a bit, since there's no
+need for the CPU to contain counting logic to generate subsequent addresses.
+All of the provided address can be regurgitated back from the exact values
+provided by the system.
+
+<p>To produce the above set of reads and writes, the CPU needs to remember
+around 56 bits of information. Tweaking the set of reads and writes can
+probably bring this number down, but not any lower than 32, since the CPU
+must maintain its instruction pointer at all times, and any read or write
+requires remembering the 16-bit address. Right off the bat, if the CPU's
+registers are accessed in a parallel fashion, we'll need at least 16 wires to
+connect things up. Tons of breadboard space, tons of wires and connections to
+route. Yuck, not simple.
+
+<p>Instead of using parallel access then, how about serial? If the system
+sends and receives data one bit at a time, then the CPU could do the same for
+its internal storage. This would allow all 56 bits to be sent and received
+over the same wire, just at different times, and the CPU could pass the
+serial signal through to a serial storage chip inside itself. Seems like it
+might be simpler.
+
+<h3>Shopping</h3>
+
+<p>So, we're now looking for a memory or register chip that communicates in a
+serial fashion. To the store! I'll use <a
+href="https://mouser.com">Mouser</a>, since I like their product filtering
+UI. The chip needs to communicate serially, operate at 3.3 V, and ideally be
+as cheap as possible. Oh, and mount using through-hole pins, so they're easy
+to put on a breadboard.
+
+<p>The cheapest memory chips there are EEPROM chips, but these are difficult
+and slow to write to. We can filter those out. After that, the cheapest are
+Flash chips; these are just fancy EEPROMs. To the bin with you!
+
+<p>After filtering the various ROMs out, the next cheapest chip is the <a
+href="https://www.microchip.com/wwwproducts/en/23K640">Microchip
+23K640-I/P</a> 64KBit SRAM. This one communicates using the <a
+href="https://en.wikipedia.org/wiki/Serial_Peripheral_Interface">Serial
+Peripheral Interface</a> (SPI). SPI is just about the simplest serial
+communications protocol I can imagine; this bodes well.
+
+<h3>Microchip SRAM</h3>
+<p>Looking at the <a
+href="http://ww1.microchip.com/downloads/en/DeviceDoc/22126E.pdf">data
+sheet</a> for this chip, the chip has 7 connected pins; that's good, not too
+much to wire up. Besides power and ground, this leaves 5 data pins: <span
+class="not">CS</span>, <span class="not">HOLD</span>, SCK, SI, and SO. The
+overline indicates that the pin is "active" when it sees ground, not power. We say
+that power voltage is "high" and that ground voltage is "low"; thus overlined pins
+are "active low."
+
+<p>During normal operation, shortly after SCK (serial clock) goes from ground
+voltage (high) to power voltage, the chip samples the voltage level of the SI
+(serial input) pin. If the voltage level is power, the chip considers itself
+to have read a one; ground, a zero. Shortly after SCK returns from power
+voltage to ground voltage, the chip has the opportunity to output a bit on
+SO. It does so by internally connecting SO to either power for a one or
+ground for a zero. If it does not desire to output a bit, it leaves SO
+disconnected.
+
+<p>In the usual configuration SCK is always ticking, but a read or write
+needs to have a definite beginning and ending. This is the purpose of the
+<span class="not">CS</span> (chip select) pin. When <span
+class="not">CS</span> is high, the chip is blind to SCK ticks, and SO is
+disconnected. When <span class="not">CS</span> transitions from high to low,
+the chip considers an operation to have begun; when <span
+class="not">CS</span> transitions back from low to high, the operation ends.
+All values sent in and out of the chip are most-significant-bit first.
+
+<p>There are two basic operation cycles: read and write. A read operation
+consists of clocking 00000011 to the chip, then the 16-bit address.
+Afterwards, the chip will clock the byte at that address to SO. By
+default, it's unspecified what happens if the operation is not immediately
+ended after one byte.
+
+<p>A write operation consists of clocking 00000010 to the chip, then the
+16-bit address, then the byte to write. By default, it's unspecified what
+happens if the operation is not immediately ended after one byte.
+
+<p>Writing one byte at a time isn't exactly ideal, since we'd need the
+aforementioned counting mechanism to generate successive accesses. Luckily,
+the chip provides a "sequential mode", which operates very much as we'd
+desire. In sequential mode, as many bytes as desired can be read or written
+by continuing the operation after the first bytes. The chip does not
+initialize in sequential mode however; an operation needs to be executed to
+place the chip in this mode.
+
+<p>Man, wouldn't it be nice if the chip started in sequential mode? Then we
+wouldn't have to deal with this extra operation; just read and write. Well,
+if we go a bit up in Microchip's SRAM product line to the 23LC512, we find a
+512KBit (64KiB) SRAM that operations almost identically to the 23K640. This
+larger chip defaults to sequential mode, and still only costs around a buck!
+
+<h4>Aside</h4>
+
+<p>I'll pause for a moment to revel in the decision to use a 64KiB SRAM to
+store 56 bits of data inside a CPU. This chip probably has far more switching
+elements in it than the first 100 computers built by man. Still, the magic of
+VLSI makes this the simplest and most cost effective option for this storage.
+
+<p> Though this chip does have an instruction set and sequential control
+logic for executing it, it's far from Turing complete on its own. It doesn't
+have the, for lack of a better word, recursiveness required for general
+computation. Our goal will then be to bless it with this recursiveness, by
+reflecting some aspects of its own operation back at it, to turn it from a
+simple RAM chip into a fully fledged CPU.
+
+<h3>Microcode</h3>
+
+Now that we have a real chip to work with, we can recast the orignal list of
+tasks in terms of the chip:
+
+<ol>
+    <li>Execute a system read operation using the CPU's instruction pointer.
+    Save the 48 bits read from the system somewhere inside the processor.
+    Store some of the bits as the new instruction pointer, and the others in
+    CPU registers for the source and destination addresses.
+    <li>Execute a system read operation at the source address, and save next
+    8 bits in a location for the source value.
+    <li>Execute a system write operation at the destination address and
+    provide the 8 source value bits.
+</ol>
 
 <h3>Main Cycle</h3>
 <pre>
