@@ -125,140 +125,61 @@ surprisingly practical (for a hilariously impractical value of practical).
 <div class="intro">
 <h2>Synthesizing Addition: <a href="https://en.wikipedia.org/wiki/IBM_1620">Can't Add, Doesn't Even Try</a></h2>
 <p>To provide an intuition of how computation can be done with just a
-glorified move instruction, I'll synthesize an 8-bit addition instruction
-using only byte byte jump.
+glorified move instruction, I'll sketch some of the strategies used to
+construct an 8-bit addition operation using only byte byte jump. I'll spare
+the details, as the actual construction of such an operation is a bit
+intricate, and most of it is not difficult or interesting, but just tedious.
 
-<p>How might we construct addition? Well, imagine we have a "giant" table
-that takes up the entire 64KiB address space. Such a table could be indexed
-by a pair of 8 bit values; one forming the high byte of the value, and the
-other forming the low byte. In such a table, we could just store the sum of
-the two indices; an indexed lookup into this table would allow adding any two
-8-bit values.
+<p>How might one go about constructing addition? Well, imagine we have a
+"giant" table that takes up the entire 64KiB address space. Such a table
+could be indexed by a pair of 8 bit values; one forming the high byte of the
+value, and the other forming the low byte. In such a table, we could just
+store the sum of the two indices; an indexed lookup into this table would
+allow adding any two 8-bit values.
 
 <p>Unfortunately, this wouldn't leave room in the address space for anything
 else. But this is just a matter of size. The complete table of 4-bit by 4-bit
-sums occupies only 256 addresses. Call this table <code>sum4[256]</code>; it
-contains the 8-bit result of adding the low 4 bits of the index to the high 4
-bits. Assume that any such tables are preloaded into the address space as
-part of the program.
+sums occupies only 256 addresses. This leads to a workable approach: do two
+separate 4-bit additions, one between the low 4 bits of the input bytes, and
+another between the high 4 bits. Incorporate the carry from the low addition
+into the high one, and combine the two sums together into a full 8-bit
+addition. This can be all accomplished by a series of subsequent lookups in
+around 5KiB of tables included with the program.
 
-<p>First, a few notational conventions. I'll refer to our base byte byte jump
-instruction as follows:
-<pre>
-loc: MOV src dst [jmp] -- comment
-</pre>
+<p>Given one of these tables, how can byte byte jump perform a lookup? On the
+face of it, it seems like the source and destination addresses for any given
+instruction are fixed. The trick is an old one: self-modifying code. Either
+or both byte of the source address can be overwritten by a prior move
+instruction. Specifically, if a table ranges from $xy00 to $xyFF, then
+overwriting the low byte of the source address with the offset causes the
+next instruction to perform an indexed lookup in that table.
 
-<p>The <code>jmp</code> argument is optional; if omitted, it implicitly
-refers to the address of the next instruction. <code>loc</code> refers to the
-address of the instruction itself. Comments begin with <code>--</code> and
-continue until the end of the line. Temporary locations are indicated by
-<code>t[n]</code>, for some positive integer <code>n</code> (optional).
-Locations and temporaries are considered local to each macro instruction. I
-will avoid here specifying how the instruction is laid out in RAM, but each
-part of an instruction at <code>loc</code> can be referred to using
-<code>loc.src</code>, <code>loc.dst</code>, or <code>loc.jmp</code>.
+<p>Conditional branches and the like can be achieved using a similar trick,
+instead overwriting the jump part of the address instead of the source.
 
-<p>Using this notation, I can now define an 8-bit table lookup. It consists
-of two instructions. The first overwrites the low 8 bits of the second's
-source address. Then, when the second executes, it loads from the offset
-location within the table indicated by its fixed high byte.
+<p>The above technique works byte at a time, which gives obvious access to
+two table sizes: 8-bit and 16-bit. However, no 16-bit tables can be used,
+since they would consume the entire address space, leaving no room for the
+program. A 12-bit table only occupies 4KiB of the address space, which is
+quite practical, and it would allow combining 4 bits of one index byte with
+all 8 bits of another. This is the only way I could find for this
+architecture to do a lookup that depended on more than one byte. This is
+quite indispensible for doing addition, since our approach depends on adding
+parts of two different bytes together.
 
-<pre>
-MOV_INDIR8 src lo dst [jmp]:
-  -- *dst = *(src &amp; 0xFF00 | *lo)
-  MOV lo loc.src+1
-  loc: MOV src dst jmp
-</pre>
+<p>The trick is, of course, another table: this time to generate the high
+byte of a 16-bit indexed lookup. The observation is that since we want 12-bit
+tables, only the low 4 bits of the high byte should be allowed to vary with
+the index. Another 8-bit table can overwrite the high 4 bits of any byte with
+the highest 4 bits of the table address. This allows the low 4 bits of any
+byte to offset a lookup in a 4096-byte table.
 
-<p>Using this lookup and the sum table, a 4-bit addition operation can be constructed:
-
-<pre>
-ADD4 a dst [jmp]:
-  -- *dst = (*a &gt;&gt; 4) + (*a &amp; 0x0F)
-  MOV_INDIR8 sum4 a jmp
-</pre>
-
-<p>A weird 4-bit addition isn't really the goal though; I want 8-bit
-addition! How might we get there from here?
-
-<pre>
-TODO: Move into position
-MOV_INDIR16 hi lo dst [jmp]:
-  -- *target = *(*hi &lt;&lt; 8 | *lo)
-  MOV hi loc.src
-  MOV lo loc.src+1
-  loc: MOV 0xDEADBEEF dst jmp
-</pre>
-
-
-<p>However, to use this, we need to be able to manipulate the high and low
-4-bit portions of bytes. Let's build a handful of 4-bit manpulation
-operators. Afterward, we'll see how they can be used to transform a 4-bit
-table-based addition into a full 8-bit addition.
-
-<p>First, let's build 4-bit left and right shift operators, using
-<code>ls4[256]</code> and <code>rs4[256]</code> tables, respectively:
-
-<pre>
-LS4 src dst [jmp]:
-  -- *dst = *src &lt;&lt; 4
-  MOV_INDIR ls4 src jmp
-
-RS4 src dst [jmp]:
-  -- *dst = *src &gt;&gt; 4 &amp; 0x0F
-  MOV_INDIR rs4 src jmp
-</pre>
-
-<p>Now, to use ADD4 to add the 4 low bits of one byte to the 4 low bits of
-another, we need some way to merge together the low 4 bits of two bytes into
-one. This would seem require a pair of 4-bit table lookups: merge4[16][16], but
-our indirection trick only operates at a byte-level granularity.
-
-<p>Say the first set of 4 bits was fixed, and we only needed to vary over the
-second. We'd have 16 merge4 tables: merge4_0[256] to merge4_15[256]. Each of
-them would store a value with 4 high bits of 0..15, and the low 4 bits of the
-index. Now say we store these 16 tables consecutively from 0 to 15, and align
-the whole 4096 bytes on a 4096-byte boundary. Now the 4 high bits of every
-address in any of the tables are the same, and the low 4 bits of the high byte
-selects the table. Thus, to find the right table location, we only need to
-overwrite the 4 high bits of the first index with the 4 high bits of the table.
-This we can do with yet another table, merge4[256].
-
-<p>Putting it all together, we get the following:
-
-<pre>
-MERGE4 hi lo dst [jmp]:
-  -- *dst = (*hi &amp; 0x0F) &lt;&lt; 4 | (*lo &amp; 0x0F)
-  MOV_INDIR merge4 hi t
-  MOV_INDIR16 t lo dst jmp
-</pre>
-
-<p>Now we can add the 4 low bits or the 4 high bits of two bytes:
-
-<pre>
-ADD4_LO a b dst [jmp]:
-  -- *dst = (*a &amp; 0x0F) + (*b &amp; 0x0F)
-  MERGE4 a b t
-  ADD4 t dst jmp
-
-ADD4_HI a b dst [jmp]:
-  -- *dst = (*a &amp; 0xF0) &gt;&gt; 4 + (*b &amp; 0xF0) &gt;&gt; 4
-  RS4 a t
-  RS4 b t1
-  ADD4_LO t t1 dst jmp
-</pre>
-
-<p>Finally, we can combine the two, producing the full 8-bit ADD:
-
-<pre>
-ADD a b dst [jmp]
-  -- *dst = *a + *b
-  ADD4_LO a b t -- low 4 bits = low addition
-  RS4 t t1 -- low 4 bits = carry of the low addition
-  ADD4_HI a b t2 -- low 4 bits = high addition without carry
-  ADD4_LO t1 t2 t3 -- low 4 bits = high addition with carry
-  MERGE4 t3 t dst jmp
-</pre>
+<p>Addition tables like the one used here are not purely theoretical; the
+approach was used in at least one production computer. The <a
+href="https://en.wikipedia.org/wiki/IBM_1620">IBM 1620</a> was codenamed
+CADET during devolpment; some in the user community suggested that this
+acronym stood for "Can't Add, Doesn't Even Try". But, even machines like
+these can't add, they sure do a good impression of those that can!
 
 <div class="intro">
 <h2>Implementation</h2>
