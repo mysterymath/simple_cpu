@@ -5,11 +5,13 @@
     html {
         background-color: #002b36;
     }
-    body {
+    .content {
         color: #839496;
 	      font-family: Georgia, serif;
         line-height: 1.5;
         max-width: 60ch;
+        margin-left: auto;
+        margin-right: auto;
     }
     h1,h2,h3,h4,h5,h6 {
         color: #93a1a1;
@@ -19,6 +21,12 @@
     p {
         text-align: justify;
     }
+    a:link {
+      color: #268bd2;
+    }
+    a:visited {
+      color: #d33682;
+    }
     .intro {
         break-inside: avoid;
     }
@@ -26,7 +34,7 @@
       font-size: large;
     }
 </style>
-
+<div class="content">
 <div class="intro">
 <h1>A Simple CPU</h1>
 <h2>What Does it Take?</h2>
@@ -58,7 +66,6 @@ consequences of various rule sets, I've chosen the following:
     <li>The CPU must be responsible for the overall control of the system.
     <li>The CPU should use as few components and wires as possible.
 </ul>
-</div>
 
 <div class="intro">
 <h2>Abstract CPU Design</h2>
@@ -334,3 +341,4 @@ over on the main EEPROMS. We thus need to hold the SIO eeprom for 64-20 = 44
 cycles to sync the two EEPROMS up once every 4 cycles. These hold bits can be
 placed anywhere in the empty region following the main cycle at the very end
 of the SIO.!HOLD EEPROM.
+</div>
