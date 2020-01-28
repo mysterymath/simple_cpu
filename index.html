@@ -313,7 +313,7 @@ store 56 bits of data inside a CPU. This chip probably has far more switching
 elements in it than the first 100 computers built by man. Still, the magic of
 VLSI makes this the simplest and most cost effective option for this storage.
 
-<p> Though this chip does have an instruction set and sequential control
+<p>Though this chip does have an instruction set and sequential control
 logic for executing it, it's far from Turing complete on its own. It doesn't
 have the, for lack of a better word, recursiveness required for general
 computation. Our goal will then be to bless it with this recursiveness, by
@@ -322,21 +322,122 @@ simple RAM chip into a fully fledged CPU.
 
 <h3>Microcode</h3>
 
-Now that we have a real chip to work with, we can recast the orignal list of
-tasks in terms of the chip:
+<p>Now that we have a real chip to work with, we can recast the orignal list of
+tasks in terms of the chip. Zero seems the most natural address at which to
+store data in the SRAM.
 
 <ol>
-    <li>Execute a system read operation using the CPU's instruction pointer.
-    Save the 48 bits read from the system somewhere inside the processor.
-    Store some of the bits as the new instruction pointer, and the others in
-    CPU registers for the source and destination addresses.
-    <li>Execute a system read operation at the source address, and save next
-    8 bits in a location for the source value.
-    <li>Execute a system write operation at the destination address and
-    provide the 8 source value bits.
+  <li>Read the instruction.
+    <ol>
+        <li>Activate chip. Begin system read.
+        <li>Send 00000011 (read) to SI.
+        <li>Send the instruction pointer's address in the register memory to SI.
+        <li>The chip sends the instruction pointer to the system via SO.
+        <li>Deactivate chip.
+        <li>Activate chip.
+        <li>Send 00000010 (write) to SI.
+        <li>Send the address that will receive the instruction to SI. The jump
+        address overlaps the instruction pointer in the SRAM.
+        <li>The system sends 48 bits of data to the chip via SI. This overwrites
+        the instruction pointer as well.
+        <li>End system read. Deactivate chip.
+    </ol>
+  <li>Read the value at the source address.
+    <ol>
+      <li>Activate chip. Begin system read.
+      <li>Send 00000011 (read) to SI.
+      <li>Send the source address's address in the register memory to SI.
+      <li>The chip sends the source address to the system via SO.
+      <li>Deactivate chip.
+      <li>Activate chip.
+      <li>Send 00000010 (write) to SI.
+      <li>Send the address that will receive the source value to SI.
+      <li>The system sends 8 bits of data to the chip via SI.
+      <li>End system read. Deactivate chip.
+    </ol>
+  <li>Store the value at the destination address.
+    <ol>
+      <li>Activate chip. Begin system write.
+      <li>Send 00000011 (read) to SI.
+      <li>Send the destination address's address in the register memory to SI.
+      <li>The chip sends the destination address to the system via SO.
+      <li>Deactivate chip.
+      <li>Activate chip.
+      <li>Send 00000011 (read) to SI.
+      <li>Send the address that received the source value to SI.
+      <li>The chip sends 8 bits of data to the system via SO.
+      <li>End system read. Deactivate chip.
+    </ol>
+</ol>
+
+<p>Some immediate observations spring from the above breakdown. First, SI and
+SO never have signals sent across them at the same time. This means they can
+be physically connected together into one SIO signal; this is referred to as
+"three wire SPI." This means all data passes over one wire, whether driven by
+control, the bus, or the SRAM chip.
+
+<p>Next, the layout of the SRAM and instruction can be specified. For
+simplicity, let's begin the used region of the SRAM at address zero. The
+instruction pointer is the first value accessed, so place that at zero. Then,
+beginning each instruction with the instruction pointer establishes the
+overlap criterion of 1.8 and 1.9. If the value ends with the destination
+address, then the value location can follow immediately afterwards. This
+saves the second read cycle at 3.7, which can be skipped by allowing the chip
+to read from the destination address straight through to the value.
+
+<p>No explicit mechanism for controlling the system bus has been established.
+We can crib a simplified mechanism for this from our SRAM. Give the system
+bus an active low select line, just like the chip. Read and write operations
+work exactly as on the chip, except a read is signalled by writing a 0, and a
+write by writing a 1.
+
+<p>Putting that all together, we get the following:
+
+<ol>
+  <li>Read the instruction.
+    <ol>
+        <li>Activate system.
+        <li>Send 0.
+        <li>Activate chip.
+        <li>Send 00000011.
+        <li>Send the instruction pointer's address.
+        <li>The chip sends the instruction pointer.
+        <li>Deactivate chip.
+        <li>Activate chip.
+        <li>Send 00000010.
+        <li>Send the address that will receive the instruction.
+        <li>The system sends 48 bits of data.
+        <li>Deactivate system. Deactivate chip.
+    </ol>
+  <li>Read the value at the source address.
+    <ol>
+      <li>Activate system.
+      <li>Send 0.
+      <li>Activate chip.
+      <li>Send 00000011.
+      <li>Send the source address's address.
+      <li>The chip sends the source address.
+      <li>Deactivate chip.
+      <li>Activate chip.
+      <li>Send 00000010.
+      <li>Send the source value's address.
+      <li>The system sends 8 bits of data.
+      <li>Deactivate system. Deactivate chip.
+    </ol>
+  <li>Store the value at the destination address.
+    <ol>
+      <li>Activate system.
+      <li>Send 1.
+      <li>Activate chip.
+      <li>Send 00000011.
+      <li>Send the destination address's address.
+      <li>The chip sends 24 bits of data.
+      <li>Deactivate system. Deactivate chip.
+    </ol>
 </ol>
 
 <h3>Main Cycle</h3>
+
 <pre>
 -- Read instruction from SIO into R
   -- Begin read (0) on SIO
@@ -344,7 +445,7 @@ tasks in terms of the chip:
 
   -- Begin read of IP (0) on R
   6 R.!CS = 0; SIO = 0
-  2 SIO = 1
+  
   16 SIO = 0
 
   -- R sends instruction address (*IP) to SIO
