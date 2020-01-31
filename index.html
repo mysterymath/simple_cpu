@@ -542,16 +542,16 @@ Setting this pin low accomplishes two things. First, shortly afterwards, the
 EEPROM stops driving it's SO pin. Second, the chip becomes insensitive to
 clock edges for as long as it is held. There is one big caveat: SCLK must
 have been low for at least 80ns before <span class="not">HOLD</span> is
-driven low, and <span class="not">HOLD must return to high only whil SCLK is
-low, and at least 40ns before it goes high again. We can hook up an EEPROM's
-SO to the <span class="not">HOLD</span> pin of the SIO EEPROM, but the EEPROM
-datasheet does not guarantee that once the clock goes low, any minimum amount
-of time will pass before the SO changes. Thus we need one additional clock
-signal, HCLK, at least 80ns out of phase with SCLK. The SIO hold EEPROM is
-clocked by HCLK, guaranteeing that when HCLK goes low, at least 80ns have
-passed since SCLK went low. The other side of the timing constraint is
-obtained by running the clocks very slowly, so there is a relatively large
-amount of time between ticks.
+driven low, and <span class="not">HOLD</span> must return to high only while
+SCLK is low, and at least 40ns before it goes high again. We can hook up an
+EEPROM's SO to the <span class="not">HOLD</span> pin of the SIO EEPROM, but
+the EEPROM datasheet does not guarantee that once the clock goes low, any
+minimum amount of time will pass before the SO changes. Thus we need one
+additional clock signal, HCLK, at least 80ns out of phase with SCLK. The SIO
+hold EEPROM is clocked by HCLK, guaranteeing that when HCLK goes low, at
+least 80ns have passed since SCLK went low. The other side of the timing
+constraint is obtained by running the clocks very slowly, so there is a
+relatively large amount of time between ticks.
 
 <p>Now, the main processor cycle takes 240 cycles, so the 1024-bit EEPROMs
 can contain 4 full cycles. However, the SIO EEPROM is insensitive to clock
