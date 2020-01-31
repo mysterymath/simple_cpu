@@ -504,12 +504,12 @@ byte byte jump.
 
 <h2>Control EEPROMs</h2>
 
-There are 4 control signals in the above cycle: SRAM chip select, system chip
+<p>There are 4 control signals in the above cycle: SRAM chip select, system chip
 select, SIO, and SIO control activation. If they are repeated indefinitely,
 then the SRAM will perform a series of byte byte jump operations, operating
 as a CPU. So how can these sequences be generated?
 
-Well, our SRAM chip is awfully good at generating a sequence of bits in
+<p>Well, our SRAM chip is awfully good at generating a sequence of bits in
 sequential mode. If the whole SRAM were filled with control sequences and a
 read were issued at zero, the control sequences would be read out on SO until
 the end of the RAM were reached. At that point, the datasheet says that the
@@ -517,163 +517,55 @@ internal address pointer wraps around to zero. This means if we can get the
 control signals to fill the entire RAM, we can generate those signals
 indefinitely using 4 additional SRAMs.
 
-Using SRAMs for this is rather inconvenient though, since on power up their
+<p>Using SRAMs for this is rather inconvenient though, since on power up their
 state is random. What we need is an EEPROM chip that works just like our SRAM
 chip. Conveniently, Microchip manufactures one: the Microchip <a
 href="https://www.microchip.com/wwwproducts/en/25LC010A">25LC010A</a>
 1024-bit EEPROM. It even defaults to sequential mode, just like the SRAM
 does. With 4 of these, we can generate all 4 control signals.
 
-<h1>Note: Nothing after this point will be in the final doc. For my reference only.</h1>
+<p>The SO pins of the EEPROMs for the SRAM <span class="not">CS</span> and
+system <span class="not">CS</span> can be directly connected to their
+respective pins. The EEPROMs can be clocked by SCLK; shortly after SCLK goes
+low, the next bit of signal will be driven on these pins. Thus the activation
+lines go low before the first bit of input indicated by the next rising clock
+edge, and they go back high after the last bit of input. So far so good.
 
-<h3>Main Cycle</h3>
+<p>If we were to directly connect an EEPROM to the SIO line, this would
+always drive that line; the system and SRAM chip would never get a turn to
+speak. Still, when it is the control's turn to speak, this arrangement does
+produce the correct signal. What remains is some way to disable the SIO EEPROM
+and reenable it temporarily.
 
-<pre>
--- Read instruction from SIO into R
-  -- Begin read (0) on SIO
-  !CS = 0; SIO.!HOLD = 1; SIO = 0
+<p>The EEPROM's <span class="not">HOLD</span> pin allows us to do just that.
+Setting this pin low accomplishes two things. First, shortly afterwards, the
+EEPROM stops driving it's SO pin. Second, the chip becomes insensitive to
+clock edges for as long as it is held. There is one big caveat: SCLK must
+have been low for at least 80ns before <span class="not">HOLD</span> is
+driven low, and <span class="not">HOLD must return to high only whil SCLK is
+low, and at least 40ns before it goes high again. We can hook up an EEPROM's
+SO to the <span class="not">HOLD</span> pin of the SIO EEPROM, but the EEPROM
+datasheet does not guarantee that once the clock goes low, any minimum amount
+of time will pass before the SO changes. Thus we need one additional clock
+signal, HCLK, at least 80ns out of phase with SCLK. The SIO hold EEPROM is
+clocked by HCLK, guaranteeing that when HCLK goes low, at least 80ns have
+passed since SCLK went low. The other side of the timing constraint is
+obtained by running the clocks very slowly, so there is a relatively large
+amount of time between ticks.
 
-  -- Begin read of IP (0) on R
-  6 R.!CS = 0; SIO = 0
-  
-  16 SIO = 0
+<p>Now, the main processor cycle takes 240 cycles, so the 1024-bit EEPROMs
+can contain 4 full cycles. However, the SIO EEPROM is insensitive to clock
+signals while held, so it only sees 123 of these cycles. This creates a
+slightly tricky situation; these two cycles need to be kept in sync across
+the EEPROMS.
 
-  -- R sends instruction address (*IP) to SIO
-  16 SIO.!HOLD = 0
-  R.!CS = 1
+<p>The 123 SIO cycles will fit 4 times into 512 bits, and the main processor
+cycle will fit 4 times into 1024 bits. Thus we can maintain their sync if, at
+the end of every 1024-bit main cycle (once every 4 instructions), some bits
+are dedicated to syncing up the SIO EEPROM to the 512-bit line.
 
-  -- Begin write of IP (0) on R
-  6 R.!CS = 0; SIO.!HOLD = 1; SIO = 0
-  SIO = 1
-  SIO = 0
-  16 SIO = 0
-
-  -- SIO sends instruction to R
-  48 SIO.!HOLD = 0
-  R.!CS = 1; !CS = 1
-
--- Read value from SIO into R
-  -- Begin read (0) on SIO
-  !CS = 0; SIO.!HOLD = 1; SIO = 0
-
-  -- Begin read of SRC (2) on R
-  6 R.!CS = 0; SIO = 0
-  2 SIO = 1
-  14 SIO = 0
-  SIO = 1
-  SIO = 0
-
-  -- R sends source address to SIO
-  16 SIO.!HOLD = 0
-  R.!CS = 1
-
-  -- Begin write of VAL (6) on R
-  6 R.!CS = 0; SIO.!HOLD = 1; SIO = 0
-  SIO = 1
-  SIO = 0
-  13 SIO = 0
-  2 SIO = 1
-  SIO = 0
-
-  -- SIO sends value to R
-  8 SIO.!HOLD = 0
-  R.!CS = 1; !CS = 1
-
--- Write value from R to SIO
-  -- Begin write (1) on SIO
-  !CS = 0; SIO.!HOLD = 1; SIO = 1
-
-  -- Begin read of DST (4) on R
-  6 R.!CS = 0; SIO = 0
-  2 SIO = 1
-  13 SIO = 0
-  SIO = 1
-  2 SIO = 0
-
-  -- R sends destination address and value to SIO
-  24 SIO.!HOLD = 0
-  R.!CS = 1; !CS = 1
-</pre>
-
-In total, 240 cycles. Not too shabby!
-
-<h3>Main Cycle for R.!CS</h3>
-<pre>
-  R.!CS = 1
-  40 R.!CS = 0
-  R.!CS = 1
-  72 R.!CS = 0
-  2 R.!CS = 1
-  40 R.!CS = 0
-  R.!CS = 1
-  32 R.!CS = 0
-  2 R.!CS = 1
-  48 R.!CS = 0
-  R.!CS = 1
-</pre>
-
-<h3>Main Cycle for !CS</h3>
-<pre>
-  114 !CS = 0
-  !CS = 1
-  74 !CS = 0
-  !CS = 1
-  49 !CS = 0
-  !CS = 1
-</pre>
-
-<h3>Main Cycle for SIO</h3>
-This includes the effect of the SIO.!HOLD signal, since this EEPROM is held for those cycles.
-<pre>
-  7 SIO = 0
-  2 SIO = 1
-  22 SIO = 0
-  SIO = 1
-  24 SIO = 0
-  2 SIO = 1
-  14 SIO = 0
-  SIO = 1
-  7 SIO = 0
-  SIO = 1
-  14 SIO = 0
-  2 SIO = 1
-  SIO = 0
-  SIO = 1
-  6 SIO = 0
-  2 SIO = 1
-  13 SIO = 0
-  SIO = 1
-  2 SIO = 0
-</pre>
-
-<h3>Main Cycle for SIO.!HOLD</h3>
-<pre>
-  25 SIO.!HOLD = 1
-  17 SIO.!HOLD = 0
-  24 SIO.!HOLD = 1
-  49 SIO.!HOLD = 0
-  25 SIO.!HOLD = 1
-  17 SIO.!HOLD = 0
-  24 SIO.!HOLD = 1
-  9 SIO.!HOLD = 0
-  25 SIO.!HOLD = 1
-  25 SIO.!HOLD = 0
-</pre>
-
-<h3>Cycle Placement</h3>
-<p>Since the main processor cycle takes 240 clock cycles, a 1024-bit EEPROM
-can contain 4 main cycles. Since the SIO cycle is held for 117 of these
-cycles, it only takes 123 cycles, and the 1024-bit EEPROM could
-hypothetically hold 8 of them. However, in both cases there would be a
-remainder of bits left over, since neither number evenly divides into 1024.
-We need the two types of EEPROM to stay in sync with one another as these
-remainders are handled.
-
-<p>The 123 SIO cycles will fit 4 times into 512 bits, which allows the SIO
-EEPROM to service 8 main processor cycles with SIO bits. There are 512 -
-4*123 = 20 bits left over on the SIO EEPROM and 1024 - 4*240 = 64 bits left
-over on the main EEPROMS. We thus need to hold the SIO eeprom for 64-20 = 44
-cycles to sync the two EEPROMS up once every 4 cycles. These hold bits can be
-placed anywhere in the empty region following the main cycle at the very end
-of the SIO.!HOLD EEPROM.
-</div>
+<p>There are 512 - 4*123 = 20 bits left over on the SIO EEPROM and 1024 -
+4*240 = 64 bits left over on the main EEPROMS. Thus the SIO EEPROM needs to
+be held for an additional 64 - 20 = 44 cycles to sync up. These additional
+hold bits can be placed anywhere within the last 64 bits of the SIO control
+EEPROM.
