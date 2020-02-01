@@ -566,3 +566,20 @@ are dedicated to syncing up the SIO EEPROM to the 512-bit line.
 be held for an additional 64 - 20 = 44 cycles to sync up. These additional
 hold bits can be placed anywhere within the last 64 bits of the SIO control
 EEPROM.
+
+<h2>Implementation</h2>
+
+<p>So I went to Mouser, bought 4 EEPROMs, 1 SRAM, and two pull-up resistors.
+This cost me around $10 bucks or so; most of it shipping and handling.
+
+<p>I hooked up each EEPROM in turn to my Raspberry PI, then wrote a quick
+RPi.GPIO script to program them with the above control sequences via the
+Raspberry PI's GPIO pins. Once each of the EEPROMs were programmed, I wired
+them up to the SRAM, then wired the SCLK, HCLK, SIO, and system <span
+class="not">CS</span> lines up to GPIO.
+
+<p>I then wrote a reductuction of addition and conditional branch on zero to
+byte byte jump. Afterwards it was easy to construct a simple program to print
+the Fibonacci series. I implemented the system read and system write cycles
+in the Raspberry PI, special casing writes to location 0xFFFF to print to the
+Raspberry Pi stdout.
