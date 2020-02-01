@@ -567,6 +567,27 @@ be held for an additional 64 - 20 = 44 cycles to sync up. These additional
 hold bits can be placed anywhere within the last 64 bits of the SIO control
 EEPROM.
 
+<h2>Bootstrapping</h2>
+
+<p>With the main loop of the CPU taken care of, there's one remaining
+concern: bootstrapping. How does the CPU get into that loop in the first
+place? There are two components to the answer.
+
+<p>First, if a read is issued to any of the control EEPROMs at 0x0000, they
+will continually output the desired control signal ad infinitum. Thus,
+boostrapping these chips consists of the system issuing the read command when
+it is brought up. This can be considered part of the responsibility of the
+system, and two additional lines, B<span class="not">CS and BSI can be
+allocated for this purpose.
+
+<p>Lastly, on powerup, the contents of the SRAM is nondeterministic. This
+means the instruction pointer is nondeterministic, and the first instruction
+will thus be read from a nondeterministic location. This could be rectified
+by providing additional bootstrapping control logic as with the EEPROMs, but
+there's a simpler approach. On the first read request after power on, the
+system can summarily return all zeroes. This moves the SRAM into a
+deterministic state and begins executing the program at location zero.
+
 <h2>Implementation</h2>
 
 <p>So I went to Mouser, bought 4 EEPROMs, 1 SRAM, and two pull-up resistors.
