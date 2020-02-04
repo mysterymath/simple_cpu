@@ -97,18 +97,20 @@ little wiring as possible. So, I'm looking for an architecture similar enough
 to a modern one to be constant-time-reducible to it, but one very simple to
 implement in hardware.
 
-<h2>One Instruction Set Computer</h2>
+<h2>One Instruction to Rule Them All</h2>
 
-<p>If our architecture has only one instruction, then I can save implementing
-instruction decoding and switching logic entirely. SUBLEQ (subtract and
-branch if result <= 0) is probably the most famous instruction to use for
-this purpose. Implementing it still seems like a bit of a chore though; I'd
-need an ALU capable of subtraction, complete with status bits for the branch.
+<p>Academics and nerds have invented a dazzling variety of Turing-complete
+computer architectures with only one type of instruction. These are
+one-instruction-set computers, or OISCs. An OISC suits my purposes nicely,
+since with only one instruction type, I wouldn't need instruction decoding or
+switching logic. SUBLEQ (subtract and branch if result <= 0) is probably the
+most famous instruction to use for this purpose. Implementing it still seems
+difficult though; I'd need an ALU capable of subtraction, complete with
+status bits for the branch.
 
-<p>At a bare minimum, the CPU is going to need to be able to fetch the
-instruction from memory. To be useful, the CPU is also going to need to be
-able to save values in memory. It turns out that a combination of these two
-basic operations, memory read and memory write, is also Turing-complete.
+<p>At a bare minimum, the CPU is going to need to be able to fetch data from
+and deliver data to main memory. I was surprised to learn that a combination
+of these two basic operations, read and write, is also Turing-complete.
 
 <p>The OISC byte-byte-jump consists of an read from a source address, a write
 of that value to a target address, and a jump to a destination address. The
