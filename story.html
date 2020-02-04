@@ -101,12 +101,12 @@ implement in hardware.
 
 <p>Academics and nerds have invented a dazzling variety of Turing-complete
 computer architectures with only one type of instruction. These are
-one-instruction-set computers, or OISCs. An OISC suits my purposes nicely,
-since with only one instruction type, I wouldn't need instruction decoding or
-switching logic. SUBLEQ (subtract and branch if result <= 0) is probably the
-most famous instruction to use for this purpose. Implementing it still seems
-difficult though; I'd need an ALU capable of subtraction, complete with
-status bits for the branch.
+one-instruction-set computers, or OISCs. I should seek to build a OISC if
+possible, since with only one instruction type, I wouldn't need instruction
+decoding or switching logic. SUBLEQ (subtract and branch if result <= 0) is
+probably the most famous instruction to use for this purpose. Implementing it
+still seems difficult though; I'd need an ALU capable of subtraction,
+complete with status bits for the branch.
 
 <p>At a bare minimum, the CPU is going to need to be able to fetch data from
 and deliver data to main memory. I was surprised to learn that a combination
@@ -118,6 +118,6 @@ instruction in memory consists of just those three addresses, stored
 sequentially. Remarkably, this instruction is Turing-complete on
 stored-program computers. Even more remarkably, it admits a constant-time
 implementation of a modern CPU's instructions. Yet more remarkably, it only
-takes around 200 byte-byte-jumps to implement most operations. If I can
-clock this thing fast enough, it will resemble an actual CPU, albeit one
-about 200 times slower.
+takes around 200 byte-byte-jumps and a couple KiB of tables to implement most
+operations, including 8-bit addition. If I can clock this thing fast enough,
+it will resemble an actual CPU, albeit one about 200 times slower.
