@@ -73,19 +73,49 @@ didn't feel satisfying either. I put the project on the shelf.
 
 <h2>Simplicity</h2>
 
-<p>A ways back, the project idea reasserted itself in a bizarre form. Sans
-using a FPGA, all of the ways of wiring up a CPU are pretty complicated.
-You've got an ALU to build, data paths to wire, instruction decoding, etc.
-There's just a lot of stuff. But how much of that is actually necessary?
+<p>A ways back, the project popped back into my mind, but it had taken on a
+bizarre form. Sans using a FPGA, all of the ways of wiring up a CPU are
+pretty complicated. You've got an ALU to build, data paths to wire,
+instruction decoding, etc. There's just a lot of stuff. But how much of that
+is actually necessary?
 
 <p>By definition, any Turing-equivalent computer architecture can be reduced
 to any other via a software transformation. However, such a reduction can
 drastically affect the run time of the transformed programs. For example,
-compare a machine that can add and subtract arbitrary integers to one that
-can only increment and decrement. Addition and subtraction can easily be
-implemented in terms of increment and decrement, but it takes forever.
+compare a machine that can add and subtract to one that can only increment
+and decrement. Addition and subtraction can easily be implemented in terms of
+increment and decrement, but it takes linear time in the size of the numbers,
+not constant.
 
-<p>So, say we constrain the space of allowable architectures to those where
+<p>So, say I constrain the space of allowable architectures to those where
 software for a reasonably capable (say, 6502-like) processor can be reduced
-to the architecture with constant overhead. That is, each 6502 instruction
-should be implementable in a constant number of instructions. What then?
+to the architecture with constant overhead. That is, each source instruction
+should be implementable in a constant number of target instructions.
+
+<p>I also need to be able to actually make the thing, and I want to do as
+little wiring as possible. So, I'm looking for an architecture similar enough
+to a modern one to be constant-time-reducible to it, but one very simple to
+implement in hardware.
+
+<h2>One Instruction Set Computer</h2>
+
+<p>If our architecture has only one instruction, then I can save implementing
+instruction decoding and switching logic entirely. SUBLEQ (subtract and
+branch if result <= 0) is probably the most famous instruction to use for
+this purpose. Implementing it still seems like a bit of a chore though; I'd
+need an ALU capable of subtraction, complete with status bits for the branch.
+
+<p>At a bare minimum, the CPU is going to need to be able to fetch the
+instruction from memory. To be useful, the CPU is also going to need to be
+able to save values in memory. It turns out that a combination of these two
+basic operations, memory read and memory write, is also Turing-complete.
+
+<p>The OISC byte-byte-jump consists of an read from a source address, a write
+of that value to a target address, and a jump to a destination address. The
+instruction in memory consists of just those three addresses, stored
+sequentially. Remarkably, this instruction is Turing-complete on
+stored-program computers. Even more remarkably, it admits a constant-time
+implementation of a modern CPU's instructions. Yet more remarkably, it only
+takes around 200 byte-byte-jumps to implement most operations. If I can
+clock this thing fast enough, it will resemble an actual CPU, albeit one
+about 200 times slower.
