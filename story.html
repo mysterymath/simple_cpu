@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en-US">
+<title>A Simple CPU</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<style>
+    html {
+        background-color: #002b36;
+    }
+    .content {
+        color: #839496;
+	      font-family: Georgia, serif;
+        line-height: 1.5;
+        max-width: 60ch;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    h1,h2,h3,h4,h5,h6 {
+        color: #93a1a1;
+	      font-family: sans-serif;
+        line-height: normal;
+    }
+    p,ul,ol {
+        break-inside: avoid;
+    }
+    a:link {
+      color: #268bd2;
+    }
+    a:visited {
+      color: #d33682;
+    }
+    code {
+      font-size: large;
+    }
+    .not {
+      text-decoration: overline;
+    }
+</style>
+<div class="content">
+<h1>A Simple CPU</h1>
+<h2>Magic</h2>
+<p>When I was a child, I marvelled at our family computer. I played a lot of
+Duke Nukem 3D and Doom, and every once in a while, I'd get bored of shooting
+things. Invariably, I'd lean my face in real close the the monitor and start
+nudging the arrow keys. As the game camera moved through the virtual space,
+the pixellated rectangles on screen would distort in complex patterns. I was
+convinced that if I just stared at it long enough, I'd figure out the trick
+they used to make the colors on screen change to look like a 3D room.
+
+<p>In high school, I finally did learn enough math to figure that one out
+(with some help from the Internet). I even built a little ray-casting 3D
+engine to boot. (Ironically, neither of the above games used ray-casting.) It
+was one thing to have figured out on paper how the wall distances could be
+used to shrink or expand a 1-pixel column of texture; it was another thing
+entirely to see a room made of your own math on screen.
+
+<p>I felt that in my childhood, I'd been shown a magic trick. Hocus pocus,
+now you see a room! Then, as an adult, I could perform the trick myself.
+
+<p>In college, I learned of computer architecture and compilers and network
+stacks and algorithms and all the trappings of software. I even took a
+digital circuit design class and made some nice sequential logic circuits. A
+deeper magicks had been revealed; I learned some core tricks behind computing
+itself.
+
+<p>I understood how the trick was done, but I couldn't do it myself. I wanted
+to make a CPU to play with what I'd learned, but every idea I had for a
+project was either too easy or too hard. I could hand wire relays or
+transistors into flip flops and half adders, but that would take forever. I
+could program it all into a FPGA, but that felt way too easy. I could hook
+together a bunch of pre-built ALUs and registers and the like, but that
+didn't feel satisfying either. I put the project on the shelf.
+
+<h2>Simplicity</h2>
+
+<p>A ways back, the project idea reasserted itself in a bizarre form. Sans
+the FPGA route, all of the ways of wiring up a CPU are pretty complicated.
+You've got an ALU to build, data paths to wire, instruction decoding,
+switching logic, control sequency. There's just a lot of stuff. But how much
+of that is actually necessary?
+
+<p>By definition, any Turing-equivalent computer architecture can be reduced
+to any other via a software transformation. However, such a reduction can
+drastically affect the run time of the transformed programs. For example,
+compare a machine that can add and subtract arbitrary integers to one that
+can only increment and decrement. Addition and subtraction can easily be
+implemented in terms of increment and decrement, but it takes forever.
+
+<p>So, say we constrain the space of allowable architectures to those where
+software for a reasonably capable (say, 6502-like) processor can be reduced
+to the architecture with constant overhead. That is, each instruction should
+be implementable in a fixed constant number of target instructions. What
+then?
