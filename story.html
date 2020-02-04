@@ -47,12 +47,12 @@ the pixellated rectangles on screen would distort in complex patterns. I was
 convinced that if I just stared at it long enough, I'd figure out the trick
 they used to make the colors on screen change to look like a 3D room.
 
-<p>In high school, I finally did learn enough math to figure that one out
-(with some help from the Internet). I even built a little ray-casting 3D
-engine to boot. (Ironically, neither of the above games used ray-casting.) It
-was one thing to have figured out on paper how the wall distances could be
-used to shrink or expand a 1-pixel column of texture; it was another thing
-entirely to see a room made of your own math on screen.
+<p>In high school, I finally did learn enough math to figure that one out. I
+even built a little ray-casting 3D engine to boot. (Ironically, neither of
+the above games used ray-casting.) It was one thing to have figured out on
+paper how the wall distances could be used to shrink or expand a 1-pixel
+column of texture; it was another thing entirely to see a room made of your
+own math on screen.
 
 <p>I felt that in my childhood, I'd been shown a magic trick. Hocus pocus,
 now you see a room! Then, as an adult, I could perform the trick myself.
@@ -74,10 +74,9 @@ didn't feel satisfying either. I put the project on the shelf.
 <h2>Simplicity</h2>
 
 <p>A ways back, the project idea reasserted itself in a bizarre form. Sans
-the FPGA route, all of the ways of wiring up a CPU are pretty complicated.
-You've got an ALU to build, data paths to wire, instruction decoding,
-switching logic, control sequency. There's just a lot of stuff. But how much
-of that is actually necessary?
+using a FPGA, all of the ways of wiring up a CPU are pretty complicated.
+You've got an ALU to build, data paths to wire, instruction decoding, etc.
+There's just a lot of stuff. But how much of that is actually necessary?
 
 <p>By definition, any Turing-equivalent computer architecture can be reduced
 to any other via a software transformation. However, such a reduction can
@@ -88,6 +87,5 @@ implemented in terms of increment and decrement, but it takes forever.
 
 <p>So, say we constrain the space of allowable architectures to those where
 software for a reasonably capable (say, 6502-like) processor can be reduced
-to the architecture with constant overhead. That is, each instruction should
-be implementable in a fixed constant number of target instructions. What
-then?
+to the architecture with constant overhead. That is, each 6502 instruction
+should be implementable in a constant number of instructions. What then?
