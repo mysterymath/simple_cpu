@@ -156,3 +156,140 @@ href="https://en.wikipedia.org/wiki/IBM_1620">IBM 1620</a> used this kind of
 arithmetic table to replace expensive logic with cheaper program storage
 (punched cards and the like). It's internal code name, CADET, has been said
 to stand for "Can't Add, Doesn't Even Try." I rather like that.
+
+<h2>Registers</h2>
+
+<p>With software out of the way, let's talk about hardware. The CPU needs to
+do four steps in an infinite loop:
+
+<ol>
+  <li>Read (and remember) the instruction at the instruction pointer.
+  <li>Read (and remember) the byte at the source address.
+  <li>Write the byte to the destination address.
+  <li>Change the instruction pointer to the jump address.
+</ol>
+
+<p>Essentially, the CPU needs to remember a couple bits of data, so it needs
+memory. There are two ways to communicate data and addresses with a memory
+module: parallel and serial. Parallel would involve between 16 and 24 pins to
+wire up. Serial would involve roughly one pin. Easy choice.
+
+<p>I couldn't find any small serial register chips, so I started shopping for
+serial SRAMs, selecting the 64KiB Microchip 23LC512. This uses SPI to
+communicate data, addresses, and read/write operations to and from the chip.
+SPI is just about the simplest serial communications protocol imaginable, and
+the chip only costs around a dollar. I had my CPU registers.
+
+<p>I'll pause for a moment to revel in the absurdity of using a 64KiB SRAM to
+remember a couple bits worth of information. This one chip has more switching
+elements than the first ten of mankinds' computers combined. I'd have used a
+smaller one, but none of the smaller SPI SRAMs I could find defaulted to
+"sequential mode," which I needed. To use them, I'd have needed dedicated
+logic to switch their mode on boot. Even then, smallest available was still
+8KiB, so whatever.
+
+<p>At this point I became concerned that the SRAM I had just purchased was
+basically a modified CPU, which would make the whole thing cheating. After
+all, this memory chip has its own internal instruction pointer, instruction
+set, communications channel in and out of the chip, and (of course) internal
+memory. But its instruction set is only read, write, and mode setting, and
+all the modes do is slightly modify how reads and writes work. Unless I'm
+mistaken, the chip itself is pretty far from Turing-complete; it's just a
+memory. Really, if I want to build a CPU as easily as possible, it's good
+that the SRAM I'm using has all that stuff; it saves me having to build it. I
+can just do the fun bit of sprinkling it with Turing pixie-dust. Shoulders of
+giants and so forth.
+
+<h2>Control</h2>
+
+<p>So, the SRAM chip has only 8 pins, which makes sense, since it's serial.
+But 8 still seems like a lot for serial communications, so let's unpack this
+a bit. There's power, ground, clock, and two not used for our purposes; that
+leaves 3 data pins. These are chip select, serial input, and serial output.
+The chip isn't actually capable of inputing and outputting data at the same
+time, so we can wire the input and output together; this leaves just 2. In
+SPI, chip select basically tells the chip when an operation begins and ends;
+in between, instructions, data, and addresses are clocked in and out of the
+chip.
+
+<p>Two pins to drive. Well, the serial input/output pin, call it SIO, we
+can also connect up to "the rest of the system." In my case, I used a
+Raspberry Pi's GPIO pins. Actually, let's add another pin; we can give the
+"rest of the system" a chip select line and drive it over SPI too. I
+basically cribbed the read/write protocol from the SRAM and used it for the
+Raspberry Pi. This allows the Pi to pretend to be all of the devices the CPU
+would be connected to; main memory, terminal input and output, etc.
+
+<p>So, three signals: SIO, SRAM chip select, and system chip select.
+Some combination of 1's and 0's at various times on these four pins, and the
+SRAM will execute byte-byte-jump. Begin a read on the system, have the SRAM
+send the instruction pointer to the system, have the SRAM write the
+instruction to address 0, implicitly overwriting the instruction pointer, and
+so on. The actual derivation of these signals was extremely laborious, and took
+me a few months of fiddling in my off-hours.
+
+<p>More memories! In this case, 1KiB SPI ROM chips, from the same
+manufacturer, at about the same price. It turns out I can generate basically
+any signal I want by filling a SPI EEPROM chip with it, then issuing a
+"sequential mode" read to address zero. The internal address pointer loops
+around, so it will continue emitting that sequence of bits indefinitely. I
+can just buy three EEPROMs, and they'll drive the lines to whatever bit
+pattern I desire.
+
+<p>One caveat: what drives SIO? At some points in the cycle, the SRAM drives
+it, say, to send the system the instruction pointer. At other times, the
+system drives it, say, to send the instruction back. At yet other times,
+control logic drives it, say, to tell the SRAM where in its memory to save
+the instruction. The SRAM and system already have mechanisms for "not
+speaking" built into SPI; a disconnected/high-impedance state is part of the
+protocol. But the signal driving SIO needs three states; not two. On, off,
+and "shhhh".
+
+<p>Luckily, these EEPROM chips provide a hold pin that shushes the EEPROMs
+output. How do we drive it? Yet another EEPROM, of course, for a total of four.
+
+<h2>Implementation</h2>
+
+<p>This puts the total bill of materials at:
+
+<ul>
+  <li>1x Raspberry Pi
+  <li>1x Microchip SRAM
+  <li>4x Microchip EEPROM
+  <li>2 pullup resistors (for hold and system chip select)
+  <li>4x LED and resistors, to provide blinkenlights for each signal
+  <li>40 or so wires
+</ul>
+
+<p>I reduced a Fibonacci calculating program to byte-byte-jump, then prepared
+a 64KiB Python array with the program. I wrote a RPi.GPIO program to accept
+system read and system write instructions from the CPU, then to access or
+modify this array accordingly. I special-cased writes to 0xFFFF to print to
+the terminal. Believe it or not, it worked the first time I turned it on.
+
+<p>You can see it in action below, running at various clock rates. The
+second-rightmost LED is SIO, and all of the others are control lines. All the
+Turing-magic happens on that one LED; the others are perfectly cyclical.
+
+<iframe width="560" height="315"
+src="https://www.youtube-nocookie.com/embed/videoseries?list=PL4Aym2GNCg4hb7xvSkjSgP3m2xWIY_TZK"
+frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+<h2>Discussion</h2>
+
+<p>Compared to the time it took to conceive, design, and program this CPU,
+building it was incredibly straightforward. It operated reliably at all the
+clock rates I could get Python to generate. Admittedly, that's not very fast,
+but I got the thing running at 80kHz, and it's only takes around 40,000
+cycles to do an addition. That is, it can do ~2 additions per second, which is
+considerably more than I can do, and I bet it can do them all night!
+
+<p>I can't say I've learned very much about how to make a real CPU, but I did
+learn a lot about bus contention, SIO, timing analysis, and various other
+hardware design issues. I was also surprised that the final design seems to
+have far more in common with early computers than modern ones. All modern
+computers were bit-serial, as was this one, and extremely limited instruction
+sets were common. When you think about it, that's not too surprising, since
+in both cases the goal is simple implementation over essentially every other
+criterion. Mine was borne out of a peculiar sort of laziness, but theirs out
+of necessity and limited technology.
