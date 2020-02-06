@@ -76,45 +76,82 @@ CPU usually has instruction decoding, data path switching, an ALU, a bunch of
 stuff. But these toy CPUs are simplified models of real CPUs, and real CPUs
 need to be efficient, performant, and practical.
 
-<p>My CPU doesn't need to be any of those things; I just want it to compute the
-Fibonacci sequence in a day or so. This opens up an enormous new space of
-hilariously impractical, but perhaps simpler, designs. Where should I go
-looking for hilariously impractical yet simple ideas? Abstract mathematics, of
-course.
+<p>My CPU wouldn't need to be any of those things; I just want it to compute
+the Fibonacci sequence in under a day or so. This opens up an enormous new
+space of hilariously impractical, but maybe simpler, designs.
 
-<p>By definition, any Turing-complete computer architecture can be reduced to
-any other via a software transformation. So long as the transformation doesn't
-blow a Fibonacci-computing program completely out of the realm of possibility,
-and Turing-complete architecture is fine for my purposes. I also don't want to
-do a lot of wiring, so I'm looking for the Turing-complete architecture that is
-simplest for me to actually put together.
+<p>Hilarious impracticality and simplicity are both calling cards of abstract
+mathematics. By definition, any Turing-complete computer architecture can be
+reduced to any other via software rewriting. So long as the transformation
+doesn't blow a Fibonacci-computing program completely out of the realm of
+feasibility, any Turing-complete architecture would be fine for my purposes.
+I also don't want to do a lot of wiring, so I'm looking for an architecture
+that is very simple to actually assemble out of electronic parts.
 
 <h2>One Instruction to Rule Them All</h2>
 
 <p>Academics and nerds have invented a dazzling variety of Turing-complete
 machines with only one type of instruction: the appropriately-named
-one-instruction-set compusters (OISCs). With only one instruction type, I
-wouldn't need to decode the instruction type or switch out of the CPU's
-behavior. This potentially saves a lot of logic and wiring.
+one-instruction-set computers (OISCs). With only one instruction type, I
+could skip the whole issue of instruction decoding and associated control
+logic.
 
 <p>SUBLEQ (subtract and branch if result &lt;= 0) is probably the most famous
-instruction to use for this purpose. Implementing it still seems difficult
-though; I'd need an ALU capable of subtraction, complete with status bits for
-the branch. The CPU would also switch its operation depending on whether or not
-the branch were taken.
+instruction to use for this purpose. I explored this thoroughly, but
+implementing it is hardly any easier than a more featureful CPU. I'd still
+need an ALU capable of subtraction, complete with status bits for the branch.
+The CPU would also still have to switch its behavior depending on whether or
+not the branch should be taken.
 
-<p>At a bare minimum, the CPU is going to need to be able to fetch data from
-and deliver data to main memory. From consulting various lists of OISCs, I was
+<p>At a bare minimum, the CPU needs the capability to fetch data from and
+deliver data to main memory. From consulting various lists of OISCs, I was
 surprised to learn that a combination of these two basic operations, read and
 write, is Turing-complete.
 
-<p>The OISC byte-byte-jump has one instruction with three steps. First, read a
-byte from a source address. Next write the byte to a destination address.
-Finally, jump the instruction pointer to a jump address. The instruction in
-memory consists of just those three addresses stored consecutively. Remarkably,
-this instruction is Turing-complete on stored-program computers. Even more
-remarkably, it admits a constant-time implementation of a modern CPU's
-instructions. Tremendously remarkably, it only takes around 200 byte-byte-jumps
-and a couple KiB of tables to implement most 8-bit addition and similarly
-complex operations. If I can clock this thing fast enough, it will resemble an
-actual CPU, albeit one about 200 times slower.
+<p>The OISC byte-byte-jump has one instruction with three steps. First, read
+a byte from a source address. Next write the byte to a destination address.
+Finally, jump the instruction pointer to a jump address. Remarkably, this
+instruction is Turing-complete on stored-program computers.
+
+<h2>Can't Add, Doesn't Even Try</h2>
+
+<p>It might seem magical that such a simple operation could implement
+arithmetic, comparison, and conditional branching. As with all magic tricks,
+it's a bit less impressive once you know how.
+
+<p>Tables. A program can perform any arithmetic operation by including a
+boring table mapping all possible inputs to the corresponding output. With
+8-bit operations, unary operations are 256-byte  tables, and binary operations
+are 2D 64 KiB tables.
+
+<p>Admittedly this felt a bit like cheating, but programs for real
+architectures include all sorts of lookup tables for DES S-boxes, hash
+functions, and the like. This is no different, except that usually lookup
+tables make a program more efficient; here they make a program
+<i>possible</i>.
+
+<p>I couldn't actually include a bunch of 64 KiB tables in my program,
+though. For aesthetic reasons, I wanted an 8-bit byte, 16-bit address
+computer. When I start measuring things in megabytes, the nostalgia goggles
+fall right off.
+
+<p>Luckily, there's no need to do an entire 8-bit operation in one go. Two
+sequential 4-bit additions do an 8-bit addition just fine, and a 4-bit
+addition table takes only 256 bytes. I do need a little bit of cleverness to
+merge the high and low 4 bits of two different bytes together, but it's not
+very interesting, and it only costs another 4KiB of tables.
+
+<p>Speaking of lookups, I haven't mentioned yet how byte-byte-jump can
+perform a table lookup at all. This trick is an old one: indexed lookup by
+self-modifying code. Write a byte-byte-jump instruction into the program, and
+set the source address to the beginning of a 256-byte-aligned table. Precede
+this with an instruction that overwrites the low byte of the source address
+with the table index. When the later instruction executes, it will perform a
+table lookup. Overwriting the jump address instead does conditional
+branching.
+
+<p>The cheapest configuration of the <a
+href="https://en.wikipedia.org/wiki/IBM_1620">IBM 1620</a> used this kind of
+arithmetic table to replace expensive logic with cheaper program storage
+(punched cards and the like). It's internal code name, CADET, has been said
+to stand for "Can't Add, Doesn't Even Try." I rather like that.
