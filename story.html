@@ -68,18 +68,18 @@ convinced that if I just stared at it long enough, I'd figure out the trick
 they used to make the colors on screen change to look like a 3D room.
 
 <p>In high school, I finally learned enough math to figure it out. I even built
-a little ray-casting 3D engine to boot. (Ironically, neither of the above games
-used ray-casting.) It was one thing to have figured out on paper how wall
-distances could be used to shrink or expand a pixel-wide column of texture; it
-was another thing entirely to see a room made of your own math on screen.
+a little ray-casting 3D engine. (Although I later learned neither game actually
+used ray-casting. Que sera.) It was one thing to have figured out on paper how
+wall distances could be used to shrink or expand a pixel-wide column of
+texture; it was another thing to walk around a room made of your own math.
 
 <p>In my childhood, I'd been shown a magic trick. Hocus pocus, now you see a
-room! Later, I'd learned to perform the trick myself.
+room! Later, I'd learned the trick myself.
 
 <p>In college, I learned of computer architecture, compilers, network stacks,
 algorithms and all the trappings of software. I took a digital circuit design
 class and made sequential logic circuits on breadboards. A deeper magicks had
-been revealed: some core tricks behind computing itself.
+been revealed: the core of computing itself.
 
 <p>I understood how these tricks were done, but I couldn't really do them
 myself. I wanted to make a CPU to embody what I'd learned, but every path
@@ -87,7 +87,7 @@ towards this goal felt either trivial or impossible.  I could hand wire relays
 or transistors into flip flops and half adders, but that would take forever. I
 could program it all into a FPGA; too easy. I could hook together a bunch of
 pre-built ALUs and registers and the like, but that didn't feel satisfying
-either. I put the project on the shelf for a long time.
+either. So I put the project on the shelf for a long time.
 
 <h2>Simplicity</h2>
 
@@ -101,33 +101,33 @@ compute the Fibonacci sequence in under a day or so. This opened up an
 enormous new space of hilariously impractical, but maybe simpler, designs.
 
 <p>Hilarious impracticality and simplicity are both calling cards of abstract
-mathematics. By definition, any Turing-complete computer architecture can be
-reduced to any other via software rewriting. So long as the transformation
-doesn't blow a Fibonacci-computing program completely out of the realm of
-feasibility, any Turing-complete architecture would be fine for my purposes.
-I also didn't want to do a lot of wiring, so I was looking for an
-architecture that is very simple to actually assemble out of electronic
-parts.
+mathematics. Any <a href="https://en.wikipedia.org/wiki/Turing_completeness">Turing-complete</a>
+computer architecture can be reduced to any other via software rewriting. So
+long as the transformation doesn't make Fibonacci program completely
+infeasibile, any of these architecture would work just fine.  I also
+didn't want to do a lot of wiring, so I was also looking for one that could be
+very simply constructed from electronic parts.
 
 <h2>One instruction to rule them all</h2>
 
 <p>Academics and nerds have invented a dazzling variety of Turing-complete
-machines with only one type of instruction: the appropriately-named
-one-instruction-set computers (OISCs). With only one instruction type, I
-could skip the whole issue of instruction decoding and associated control
-logic.
+machines with only one type of instruction. These are appropriately named <a
+href="https://en.wikipedia.org/wiki/One_instruction_set_computer">one
+instruction set computers</a> (OISCs). With only one instruction type, I could
+skip the whole issue of instruction decoding and associated control logic.
 
-<p>SUBLEQ (subtract and branch if result &lt;= 0) is probably the most famous
-instruction to use for this purpose. I explored this thoroughly, but
-implementing it seemed hardly any easier than a more featureful CPU. I'd
-still need an ALU capable of subtraction, complete with status bits for the
-branch. The CPU would also still have to switch its behavior depending on
-whether or not the branch should be taken.
+<p><a href="https://en.wikipedia.org/wiki/One_instruction_set_computer#Subtract_and_branch_if_less_than_or_equal_to_zero">SUBLEQ</a>
+(subtract and branch if result &lt;= 0) is probably the most famous instruction
+to use for this purpose. I explored this thoroughly, but implementing it seemed
+hardly any easier than a more featureful CPU. I'd still need an ALU capable of
+subtraction, complete with status bits for the branch. The CPU would also still
+have to switch its behavior depending on whether or not the branch should be
+taken.
 
 <p>Any CPU needs to fetch data from and deliver data to main memory. From
-consulting various lists of OISCs, I was surprised to learn that a
-combination of these two basic operations, read and write, is
-Turing-complete.
+consulting <a href="https://en.wikipedia.org/wiki/One_instruction_set_computer">various</a>
+<a href="https://esolangs.org/wiki/OISC">lists</a> of OISCs, I was surprised to learn that a
+combination of these two basic operations, read and write, is Turing-complete.
 
 <p>The OISC byte-byte-jump has one instruction with three steps. First, read
 a byte from a source address. Next write the byte to a destination address.
