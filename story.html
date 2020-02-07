@@ -284,23 +284,31 @@ How do we drive the hold pin? Yet another EEPROM, of course, for a total of four
 <p>This puts the total bill of materials at:
 
 <ul>
-  <li>1x Raspberry Pi
-  <li>1x Microchip SRAM
-  <li>4x Microchip EEPROM
+  <li>Microchip SRAM
+  <li>4 Microchip EEPROMs
   <li>2 pullup resistors (for hold and system chip select)
-  <li>4x LED and resistors, to provide blinkenlights for each signal
+  <li>4 LEDs w/ resistors, to provide blinkenlights for each signal
   <li>40 or so wires
 </ul>
 
-<p>I reduced a Fibonacci calculating program to byte-byte-jump, then prepared
-a 64KiB Python array with the program. I wrote a RPi.GPIO program to accept
-system read and system write instructions from the CPU, then to access or
-modify this array accordingly. I special-cased writes to 0xFFFF to print to
-the terminal. Believe it or not, it worked the first time I turned it on.
+<p>I bought all this from Mouser and waited for it to arrive. It cost me about
+$14, and $7 of that was shipping.
 
-<p>You can see it in action below, running at various clock rates. The
-second-rightmost LED is SIO, and all of the others are control lines. All the
-Turing-magic happens on that one LED; the others are perfectly cyclical.
+<p>I wrote a RPi.GPIO program to accept read and write operations over the SIO
+and system chip select lines, using a 64 KiB Python array array as backing
+storage. I special-cased writes to 0xFFFF to print to the terminal. Believe it
+or not, it executed byte-byte-jumps the very first time I turned it on.
+
+<p>I then incrementally built up a library of macros using Python to program a
+Fibonacci generating program into the memory array. It took around 200 clock
+cycles to execute a byte-byte-jump, and around 200 byte-byte-jumps to exectue
+an 8-bit addition.
+
+<p>You can see it in action at various clock rates below. The second-rightmost
+LED is SIO, and all of the others are control lines. All the Turing-magic
+happens on that one LED; the others are perfectly cyclical, since they are
+fully driven by EEPROMs. The SIO line is only driven by EEPROM when the
+rightmost (HOLD) LED is on.
 
 <div class="video">
   <iframe
@@ -315,26 +323,28 @@ Turing-magic happens on that one LED; the others are perfectly cyclical.
 <p>Compared to the time it took to conceive, design, and program this CPU,
 building it was incredibly straightforward. It operated reliably at all the
 clock rates I could get Python to generate. Admittedly, that's not very fast,
-but I got the thing running at 80kHz, and it's only takes around 40,000
-cycles to do an addition. That is, it can do ~2 additions per second, which is
-considerably more than I can do, and I bet it can do them all night!
+but I got the thing running at 80kHz, and it's only takes around 40,000 cycles
+to do an addition. That is, it can do around 2 additions per second, which is
+more than I can do, and I bet it can do them all night!
 
 <p>I can't say I've learned very much about how to make a real CPU, but I did
-learn a lot about bus contention, SIO, timing analysis, and various other
-hardware design issues. I was also surprised that the final design seems to
-have far more in common with early computers than modern ones. All modern
-computers were bit-serial, as was this one, and extremely limited instruction
-sets were common. When you think about it, that's not too surprising, since
-in both cases the goal is simple implementation over essentially every other
-criterion. Mine was borne out of a peculiar sort of laziness, but theirs out
-of necessity and limited technology.
+learn a lot about avoiding bus contention, SIO, timing analysis, and general
+hardware design. I was also surprised that the final design seems to have far
+more in common with early computers than modern ones. Early computers were all
+bit-serial like this one, and very limited instruction sets supplemented with
+lookup tables were common. When you think about it, that's not too surprising,
+since in both cases simple implementation trumps most concerns.  other
+criterion. I wanted it to be simple because I'm lazy; but they needed it to be
+simple, since technology placed tight limitations on what they could build,
+even with the backing of major world governments and universities.
 
-<p>My first draft of this writup included a truly insane amount of detail about
-how the CPU works. After getting ready to post it, I gave it one final
-read-through, and I couldn't get a third of the way through it without getting
-too bored and having to stop.  I decided this was a bad sign. Still, some of
-you may have more specific questions about how this works, perhaps to build
-something similar yourself. In that case, shoot me an Email.
+<p>I can safely say that running this CPU for the first time was exactly as
+satisfying as I'd hoped.  I still can't believe the damn thing actually
+<b>computes</b>. Given how many things could have broken along the way, the
+fact that it does what I wanted is, well, pretty magical.
 
-<p>Daniel Thornburgh
-<p>mysterymath@gmail.com
+<p>I left out a tremendous amount of detail about how the CPU works, because it
+was extremely boring. Still, if any reader has specific questions about how
+how this works, shoot me an email.
+
+<address>Daniel Thornburgh (<a href="mailto:mysterymath@gmail.com">mysterymath@gmail.com</a>)</address>
