@@ -86,8 +86,8 @@ myself. I wanted to make a CPU to embody what I'd learned, but every path
 towards this goal felt either trivial or impossible.  I could hand wire relays
 or transistors into flip flops and half adders, but that would take forever. I
 could program it all into a FPGA; too easy. I could hook together a bunch of
-pre-built ALUs and registers and the like, but that didn't feel satisfying
-either. So I put the project on the shelf for a long time.
+pre-built ALUs and registers and the like, but that felt like assembling LEGOs.
+So I put the project on the shelf for a long time.
 
 <h2>Simplicity</h2>
 
@@ -129,10 +129,13 @@ consulting <a href="https://en.wikipedia.org/wiki/One_instruction_set_computer">
 <a href="https://esolangs.org/wiki/OISC">lists</a> of OISCs, I was surprised to learn that a
 combination of these two basic operations, read and write, is Turing-complete.
 
-<p>The OISC byte-byte-jump has one instruction with three steps. First, read
-a byte from a source address. Next write the byte to a destination address.
-Finally, jump the instruction pointer to a jump address. Remarkably, this
-instruction is Turing-complete on stored-program computers.
+<p>The OISC instruction
+<a href="https://esolangs.org/wiki/ByteByteJump">byte-byte-jump</a>
+takes three addresses as arguments: source, destination, and jump. First, it
+reads byte from the source address. Next, it writes thar byte to the
+destination address. Finally, it changes the instruction pointer to the jump
+address. Remarkably, this instruction is Turing-complete on
+<a href="https://en.wikipedia.org/wiki/Stored-program_computer">stored-program computers</a>.
 
 <h2>Can't add, doesn't even try</h2>
 
@@ -140,10 +143,11 @@ instruction is Turing-complete on stored-program computers.
 arithmetic, comparison, and conditional branching. As with all magic tricks,
 it's a bit less impressive once you know how.
 
-<p>Tables. A program can perform any arithmetic operation by including a
-boring table mapping all possible inputs to the corresponding output. With
-8-bit operations, unary operations are 256-byte  tables, and binary operations
-are 2D 64 KiB tables.
+<p><a href="https://en.wikipedia.org/wiki/Lookup_table">Tables</a>.
+A program can perform any arithmetic operation by including a boring table
+mapping all possible inputs to the corresponding output. With 8-bit operations,
+unary operations are 256-byte  tables, and binary operations are 2D 64 KiB
+tables.
 
 <p>Admittedly this felt a bit like cheating, but programs for real
 architectures include all sorts of lookup tables for DES S-boxes, hash
@@ -151,16 +155,15 @@ functions, and the like. This is no different, except that usually lookup
 tables make a program more efficient; here they make a program
 <i>possible</i>.
 
-<p>I couldn't actually include a bunch of 64 KiB tables in my program,
-though. For aesthetic reasons, I wanted an 8-bit byte, 16-bit address
-computer. When I start measuring things in megabytes, the nostalgia goggles
-fall right off.
+<p>I couldn't actually include a bunch of 64 KiB tables in my program, though.
+For aesthetic reasons, I wanted an 8-bit byte, 16-bit address computer. When I
+start measuring things in megabytes, the nostalgia goggles fall right off.
 
 <p>Luckily, there's no need to do an entire 8-bit operation in one go. Two
 sequential 4-bit additions do an 8-bit addition just fine, and a 4-bit
 addition table takes only 256 bytes. I did need a little bit of cleverness to
 merge the high and low 4 bits of two different bytes together, but it's not
-very interesting, and it only cost another 4KiB of tables.
+very interesting, and it only cost another 4 KiB of tables.
 
 <p>Speaking of lookups, I haven't mentioned yet how byte-byte-jump can
 perform a table lookup at all. This trick is an old one: indexed lookup by
@@ -172,31 +175,41 @@ table lookup. Overwriting the jump address in this fashion instead does
 conditional branching.
 
 <p>The cheapest configuration of the <a
-href="https://en.wikipedia.org/wiki/IBM_1620">IBM 1620</a> used this kind of
-arithmetic table to replace expensive logic with cheaper program storage
-(punched cards and the like). It's internal code name, CADET, has been said
-to stand for "Can't Add, Doesn't Even Try." I rather like that.
+href="https://en.wikipedia.org/wiki/IBM_1620">IBM 1620</a> used these kinds of
+arithmetic tables to replace expensive logic with cheaper program storage
+(punched cards and the like). It's internal code name, CADET, has been said to
+stand for "Can't Add, Doesn't Even Try." I rather like that.
 
 <h2>Registers</h2>
 
-<p>With software out of the way, let's talk about hardware. The CPU needs to
-do four steps in an infinite loop:
+<p>With software out of the way, let's talk about hardware. My byte-byte-jump
+CPU needs to do four steps in an infinite loop:
 
 <ol>
-  <li>Read (and remember) the instruction at the instruction pointer.
-  <li>Read (and remember) the byte at the source address.
+  <li>Read the instruction at the instruction pointer.
+  <li>Read the byte at the source address.
   <li>Write the byte to the destination address.
   <li>Change the instruction pointer to the jump address.
 </ol>
 
-<p>Essentially, the CPU needs to remember a couple bits of data, so it needs
-memory. There are two ways to communicate data and addresses with a memory
-module: parallel and serial. Parallel would involve between 16 and 24 pins to
-wire up. Serial would involve roughly one pin. Easy choice.
+<p>Steps 2-4 require remembering the instrucion read in step 1, and step 3
+requires remembering the value read in step 2. Thus, the CPU will need to
+remember 24 bits or so of data over time. Let's draw a box around whatever does
+this and call it a "memory module."
+
+<p>When communicating with a memory module, the different bits of the address
+and data need to be distinguished from one another somehow. There are two main
+hardware mechanisms for doing so: parallel and serial communications.  Parallel
+distinguishes bits using space, and serial using time.  Parallel gives each bit
+their own pin, while serial sends them all through the same pin, using some
+protocol.  Serial is the obvious winner in terms of build complexity.
 
 <p>I couldn't find any small serial register chips, so I started shopping for
-serial SRAMs, selecting the 64KiB Microchip 23LC512. This uses SPI to
-communicate data, addresses, and read/write operations to and from the chip.
+serial SRAMs. Not that many companies make cheap serial SRAMs, so it wasn't too
+hard to narrow this down to the 64KiB <a
+href="https://www.microchip.com/wwwproducts/en/23LC512">Microchip 23LC512</a>.
+This uses <a href="https://en.wikipedia.org/wiki/Serial_Peripheral_Interface">SPI</a>
+to communicate data, addresses, and read/write operations to and from the chip.
 SPI is just about the simplest serial communications protocol imaginable, and
 the chip only costs around a dollar. I had my CPU registers.
 
@@ -209,64 +222,62 @@ logic to switch their mode on boot. Even then, smallest available was still
 8KiB, so whatever.
 
 <p>At this point I became concerned that the SRAM I had just purchased was
-basically a modified CPU, which would make the whole thing cheating. After
-all, this memory chip has its own internal instruction pointer, instruction
-set, communications channel in and out of the chip, and (of course) internal
-memory. But its instruction set is only read, write, and mode setting, and
-all the modes do is slightly modify how reads and writes work. Unless I'm
-mistaken, the chip itself is pretty far from Turing-complete; it's just a
-memory. Really, if I want to build a CPU as easily as possible, it's good
-that the SRAM I'm using has all that stuff; it saves me having to build it. I
-can just do the fun bit of sprinkling it with Turing pixie-dust. Shoulders of
-giants and so forth.
+basically a modified CPU, which would make the whole thing cheating. After all,
+this memory chip has its own internal instruction pointer, instruction set,
+communications channel in and out of the chip, and (of course) internal memory.
+But its instruction set is only read, write, and mode setting, and all the
+modes do is slightly modify how reads and writes work. Unless I'm mistaken, the
+chip isn't Turing-complete, even if it has some of the trappings of it. Really,
+if I want to build a CPU as easily as possible, I'd want the parts I'm using to
+be almost, but not quite, Turing complete. I can just do the fun bit of
+sprinkling it with Turing pixie-dust. Shoulders of giants and so forth.
 
 <h2>Control</h2>
 
 <p>So, the SRAM chip has only 8 pins, which makes sense, since it's serial.
-But 8 still seems like a lot for serial communications, so let's unpack this
-a bit. There's power, ground, clock, and two not used for our purposes; that
-leaves 3 data pins. These are chip select, serial input, and serial output.
+But 8 still seems like a lot for serial communications, so let's unpack them a
+bit. There's power, ground, clock, and two not used for our purposes; that
+leaves 3 serial pins. These are chip select, serial input, and serial output.
 The chip isn't actually capable of inputing and outputting data at the same
-time, so we can wire the input and output together; this leaves just 2. In
-SPI, chip select basically tells the chip when an operation begins and ends;
-in between, instructions, data, and addresses are clocked in and out of the
-chip.
+time, so at any given time one is completely disconnected. I wired the two
+together and called the combination SIO. This leaves 2: SIO and chip select.
+Chip select basically tells the chip where the boundary is between one
+read/write and another.
 
-<p>Two pins to drive. Well, the serial input/output pin, call it SIO, we
-can also connect up to "the rest of the system." In my case, I used a
-Raspberry Pi's GPIO pins. Actually, let's add another pin; we can give the
-"rest of the system" a chip select line and drive it over SPI too. I
-basically cribbed the read/write protocol from the SRAM and used it for the
-Raspberry Pi. This allows the Pi to pretend to be all of the devices the CPU
-would be connected to; main memory, terminal input and output, etc.
+<p>Two pins to drive. Well, the serial input/output pin, call it SIO, I can
+connect up to "the rest of the system." This allows the CPU to communicate with
+"main memory" and "I/O devices". In my case, that's a Raspberry PI's GPIO pins.
+I added another pin to act as chip select for the "system", and used a simplified
+version of the SRAM's SPI read/write protocol to drive it.
 
-<p>So, three signals: SIO, SRAM chip select, and system chip select.
+<p>So, three signals to drive: SIO, SRAM chip select, and system chip select.
 Some combination of 1's and 0's at various times on these four pins, and the
 SRAM will execute byte-byte-jump. Begin a read on the system, have the SRAM
-send the instruction pointer to the system, have the SRAM write the
-instruction to address 0, implicitly overwriting the instruction pointer, and
-so on. The actual derivation of these signals was extremely laborious, and took
-me a few months of fiddling in my off-hours.
+send the instruction pointer to the system, have the SRAM write the instruction
+to address 0, implicitly overwriting the instruction pointer, and so on. The
+actual derivation of these signals was extremely laborious, and took me a few
+months of fiddling in my off-hours.
 
-<p>More memories! In this case, 1KiB SPI ROM chips, from the same
-manufacturer, at about the same price. It turns out I can generate basically
-any signal I want by filling a SPI EEPROM chip with it, then issuing a
-"sequential mode" read to address zero. The internal address pointer loops
-around, so it will continue emitting that sequence of bits indefinitely. I
-can just buy three EEPROMs, and they'll drive the lines to whatever bit
-pattern I desire.
+<p>So, how to drive these pins... how indeed. More memory chips! In this case,
+the 1024-bit <a href="http://www.microchip.com/wwwproducts/25LC010A">Microchip
+25LC010A</a> SPI EEPROM chips, which also cost about a dollar.  I can generate
+basically any signal I want by filling a SPI EEPROM chip with it and issuing a
+"sequential mode" read to address zero. Since the chip's internal address
+pointer loops around, the chip will clock one bit at a time out of the ROM
+indefinitely. Three EEPROMs can drive the lines to whatever bit pattern I
+desire, just so long as it can be made to fit evenly some number of times in
+1024 bits.
 
-<p>One caveat: what drives SIO? At some points in the cycle, the SRAM drives
-it, say, to send the system the instruction pointer. At other times, the
-system drives it, say, to send the instruction back. At yet other times,
-control logic drives it, say, to tell the SRAM where in its memory to save
-the instruction. The SRAM and system already have mechanisms for "not
-speaking" built into SPI; a disconnected/high-impedance state is part of the
-protocol. But the signal driving SIO needs three states; not two. On, off,
-and "shhhh".
+<p>One caveat: SIO? At some points in the cycle, the SRAM drives it, say, to
+send the system the instruction pointer. At other times, the system drives it,
+say, to send the instruction back. At yet other times, control logic drives it,
+say, to tell the SRAM where in its memory to save the instruction. The SRAM and
+system already have mechanisms for "not speaking" built into SPI; a
+disconnected/high-impedance state (Z) is part of the protocol. But the EEPROM
+driving SIO also needs a third, Z state as well.
 
-<p>Luckily, these EEPROM chips provide a hold pin that shushes the EEPROMs
-output. How do we drive it? Yet another EEPROM, of course, for a total of four.
+<p>Luckily, these EEPROM chips provide a hold pin that Z's the EEPROMs output.
+How do we drive the hold pin? Yet another EEPROM, of course, for a total of four.
 
 <h2>Implementation</h2>
 
@@ -318,11 +329,12 @@ in both cases the goal is simple implementation over essentially every other
 criterion. Mine was borne out of a peculiar sort of laziness, but theirs out
 of necessity and limited technology.
 
-<p>My first draft of this writup included a truly insane amount of detail
-about how the CPU works. After getting ready to post it, I gave it one final read-through,
-and I couldn't get a third of the way through it without getting too bored and having to stop.
-I decided this was a bad sign. Still, some of you may have more specific questions about how this works,
-perhaps to build something similar yourself. In that case, shoot me an Email.
+<p>My first draft of this writup included a truly insane amount of detail about
+how the CPU works. After getting ready to post it, I gave it one final
+read-through, and I couldn't get a third of the way through it without getting
+too bored and having to stop.  I decided this was a bad sign. Still, some of
+you may have more specific questions about how this works, perhaps to build
+something similar yourself. In that case, shoot me an Email.
 
 <p>Daniel Thornburgh
 <p>mysterymath@gmail.com
