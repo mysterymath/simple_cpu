@@ -35,10 +35,19 @@
     .not {
       text-decoration: overline;
     }
-    iframe {
-      height: 315px;
-      width: 560px;
+    .video {
       max-width: 100%;
+      /* This is relative to the width, preserving the aspect ratio. */
+      padding-bottom: 56.25%;
+      position: relative;
+      width: 560px;
+    }
+    iframe {
+      height: 100%;
+      left: 0;
+      position: absolute;
+      top: 0;
+      width: 100%;
     }
 </style>
 <div class="content">
@@ -276,9 +285,13 @@ the terminal. Believe it or not, it worked the first time I turned it on.
 second-rightmost LED is SIO, and all of the others are control lines. All the
 Turing-magic happens on that one LED; the others are perfectly cyclical.
 
-<p><iframe
-src="https://www.youtube-nocookie.com/embed/videoseries?list=PL4Aym2GNCg4hb7xvSkjSgP3m2xWIY_TZK"
-frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<div class="video">
+  <iframe
+    src="https://www.youtube-nocookie.com/embed/videoseries?list=PL4Aym2GNCg4hb7xvSkjSgP3m2xWIY_TZK"
+    frameborder="0"
+    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen></iframe>
+</div>
 
 <h2>Discussion</h2>
 
