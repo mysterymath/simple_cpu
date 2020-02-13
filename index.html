@@ -234,18 +234,15 @@ stage is set. Enter the players. Four more identical SRAMs can be hooked
 together with the SRAM and main memory. Together, the five SRAMs can operate
 as a byte-byte-jump CPU.
 
-<p>How on Earth does that work? Well, the SRAM and main memory both have
-instruction sets and protocols for communicating with them. Getting them to
-together perform byte-byte-jump just requires issuing the proper operations
-to each at the right times. This can be done by driving three waveforms: one
-for SRAM CS, one for main memory CS, and one for SIO.
+<p>How does adding more SRAMs help? Well, performing byte-byte-jump requires
+issuing various instructions and addresses to the SRAM and main memory. These
+take the form of specific binary signals for SRAM CS, main memory CS, and
+SIO. An SRAM can generate any binary signal. At boot, fill its memory with
+repeated copies of the signal. Then, issue a read to address zero. That
+signal will come out of SO indefinitely, since the internal address pointer
+wraps back around to zero once it reaches the end.
 
-<p>An SRAM can be used as an arbitrary waveform generator. At boot, fill its
-memory with repeated copies of the waveform. Then, issue a read to address
-zero. That waveform will come out of SO indefinitely, since the internal
-address pointer wraps back around to zero once it reaches the end.
-
-<p>For the two CS lines, these waveforms are just a sequence of high and low
+<p>For the two CS lines, these signals are just a sequence of high and low
 voltages. They thus require one SRAM each. SIO is a little different, since
 it should only be driven when neither the SRAM or main memory is sending data
 across it. This means it needs three states: high, low, and disconnected.
