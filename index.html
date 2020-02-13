@@ -252,7 +252,7 @@ across it. This means it needs three states: high, low, and disconnected.
 
 <p>Luckily, the SRAMs have HOLD pins that disconnect their outputs. The third
 SRAM drives SIO, and the fourth SRAM drives the third SRAM's HOLD pin. This
-allows the third pin to only drive SIO sometimes, completing the setup.
+allows the third SRAM to only drive SIO sometimes, completing the setup.
 
 <p>While I would have <b>loved</b> to be able to say I built a CPU out of
 five identical SRAM chips, reality was not so kind. I'd have to program four
@@ -291,7 +291,7 @@ Finally, I wired the four EEPROMs, the SRAM, and the Raspberry Pi together.
 byte-byte-jumps, instead the expected behavior, catching fire. All things
 considered, it took around 200 clock cycles to execute a single byte-byte-jump.
 
-<p>I incrementally built up a library of macros using Python to program a
+<p>I incrementally built up a library of routines to program a
 Fibonacci-calculating program into the memory array. All things considered,
 it took around 200 byte-byte-jump instructions to execute an 8-bit addition.
 
