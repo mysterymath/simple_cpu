@@ -237,10 +237,12 @@ as a byte-byte-jump CPU.
 <p>How does adding more SRAMs help? Well, performing byte-byte-jump requires
 issuing various instructions and addresses to the SRAM and main memory. These
 take the form of specific binary signals for SRAM CS, main memory CS, and
-SIO. An SRAM can generate any binary signal. At boot, fill its memory with
-repeated copies of the signal. Then, issue a read to address zero. That
-signal will come out of SO indefinitely, since the internal address pointer
-wraps back around to zero once it reaches the end.
+SIO. An SRAM can generate any binary signal.
+
+<p>To generate a signal, fill the SRAM with repeated copies of the signal and
+issue a read to address zero. The signal will then come out of SO
+indefinitely, since the SRAM reads each address successively, and the
+internal address pointer wraps back around to zero once it reaches the end.
 
 <p>For the two CS lines, these signals are just a sequence of high and low
 voltages. They thus require one SRAM each. SIO is a little different, since
