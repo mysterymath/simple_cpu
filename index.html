@@ -114,8 +114,10 @@ one I could build from very few electronic parts.
 <p>A dazzling variety of Turing-complete abstract machines have only one
 instruction type. These are appropriately named
 <a href="https://en.wikipedia.org/wiki/One_instruction_set_computer">one
-instruction set computers</a> (OISCs). With only one instruction, I could
-skip instruction decoding and switching entirely.
+instruction set computers</a> (OISCs). Much of production CPUs hardware
+exists to switch the behavior of the processor when different types of
+instructions are read. With only one instruction type, I could avoid needing
+any hardware for this.
 
 <p><a href="https://en.wikipedia.org/wiki/One_instruction_set_computer#Subtract_and_branch_if_less_than_or_equal_to_zero">SUBLEQ</a>
 (subtract and branch if result &lt;= 0) is probably the most famous OISC.
@@ -134,7 +136,6 @@ instruction requires little else.
 <p>Byte-byte-jump takes three addresses as arguments: source, destination,
 and jump. It reads a byte from the source address, writes it to the
 destination address, and changes the instruction pointer to the jump address.
-If a CPU can do this, then it can do anything.
 
 <h2>Can't add, doesn't even try</h2>
 
@@ -154,9 +155,8 @@ program includes a byte-byte-jump with the table as the source address. At
 runtime, before the instruction executes, the program can use another
 byte-byte-jump to overwrite the low byte of the source address (in the
 program itself) with the table index. When the modified instruction later
-runs, it would then read from the correct location inside the table.
-Overwriting the jump address in this fashion yields conditional branching
-instead.
+runs, it then reads from the correct location inside the table. Overwriting
+the jump address in this fashion yields conditional branching.
 
 <p>One snag. The naive tables for even 8-bit binary operations (like
 additions) are 64 KiB large. This plus a program would require addresses to
@@ -189,7 +189,7 @@ to access or overwrite each of these values without disturbing the others.
 time. Parallel systems include multiple copies of a thing with different
 wires and pins for each. Serial systems use the same pins and wires to handle
 different items at different times, with the timing coordinated by some
-protocol. I want to avoid as many wires and pins as I can, so serial is my
+protocol. Parallel takes more work to physically wire up, so serial is my
 jam.
 
 <p>So, I need a way to remember some bits with a serial interface. That means
@@ -219,10 +219,18 @@ a powerful engine, but without a driver.
 
 <p>Something needs to drive the SRAM's pins. The SRAM has eight, but only
 three are interesting: chip select (CS), serial input (SI), and serial output
-(SO). The chip can't actually input and output at the same time, so I wired
-SI and SO together into one "SIO" pin. The operation type (read/write),
-address, and data are sent over SIO once CS is activated; the operation ends
-once CS is deactivated.
+(SO).
+
+<p>The chip can't actually input and output at the same time. When SI is in
+use, SO is always electrically disconnected, and vice versa. Thus, instead of
+treating them separately, I wired them together into one "SIO" pin. This
+reduces the number of electrical connections needed with the rest of the
+system.
+
+<p>The CS pin controls the timing of the operations sent over the SIO line.
+Once CS is activated, the operation type (read/write) and address are sent
+over SIO. Data then flows over SIO from/to the given address (and successive
+addresses) until CS is deactivated.
 
 <p>The main memory also needs to communicate with the CPU. For this, I used a
 slightly tweaked version of the SRAM's protocol over SPI. The main memory
@@ -280,7 +288,7 @@ behavior indefinitely, even without power.
 pins. I wrote a program to accept read and write operations over the SIO and
 main memory CS lines, using a 64 KiB array as backing storage. Whenever the
 CPU writes a byte to the address 0xFFFF, the program prints it to the
-terminal. This gives programs for the CPU an extremly limited output device.
+terminal. This gives programs for the CPU a simple output device.
 
 <p>I wrote a script to program each of the EEPROMs with its control signal,
 then verified that each EEPROM would output that signal indefinitely.
