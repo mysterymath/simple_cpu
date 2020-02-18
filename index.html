@@ -285,22 +285,28 @@ they retain their behavior without power.
 ~$15, and $7 of that was shipping.
 
 <p>The part of main memory was to be played by a Raspberry PI and its GPIO
-pins. I wrote a program to accept read and write operations over the SIO and
-main memory CS lines, using a 64 KiB array as backing storage. Whenever the
-CPU writes a byte to the address 0xFFFF, the program prints it to the
-terminal. This gives programs for the CPU a simple output device.
+pins. I wrote a
+<a href="https://github.com/mysterymath/simple_cpu/blob/master/bus.py">program</a>
+to accept read and write operations over the SIO and main memory CS lines,
+using a 64 KiB array as backing storage. Whenever the CPU writes a byte to
+the address 0xFFFF, the program prints it to the terminal. This gives
+programs for the CPU a simple output device.
 
-<p>I wrote a script to program each of the EEPROMs with its control signal,
-then verified that each EEPROM would output that signal indefinitely.
-Finally, I wired the four EEPROMs, the SRAM, and the Raspberry Pi together.
+<p>I wrote a
+<a href="https://github.com/mysterymath/simple_cpu/blob/master/eeprom.py">script</a>
+to program each of the EEPROMs with its control signal, then verified that
+each EEPROM would output that signal indefinitely. Finally, I wired the four
+EEPROMs, the SRAM, and the Raspberry Pi together.
 
 <p>I turned it on for the first time. It immediately started executing
 byte-byte-jumps, instead the expected behavior, catching fire. All things
 considered, it took around 200 clock cycles to execute a single byte-byte-jump.
 
-<p>I incrementally built up a library of routines to write a
-Fibonacci-calculating program into the memory array. All things considered,
-it took around 200 byte-byte-jump instructions to execute an 8-bit addition.
+<p>I incrementally built up a
+<a href="https://github.com/mysterymath/simple_cpu/blob/master/bus.py">library</a>
+of routines to write a Fibonacci-calculating program into the memory array.
+All things considered, it took around 200 byte-byte-jump instructions to
+execute an 8-bit addition.
 
 <p>You can see it in action at various clock rates below. The second-rightmost
 LED is SIO, and all of the others are control lines. The Turing magic happens
